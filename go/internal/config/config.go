@@ -10,12 +10,12 @@ import (
 )
 
 type Config struct {
-	Port              string
-	DBPath            string
-	JWTSecret         string
-	JWTExpiry         time.Duration
-	ProfanityURL      string
-	ProfanityTimeout  time.Duration
+	Port             string
+	DBPath           string
+	JWTSecret        string
+	JWTExpiry        time.Duration
+	ProfanityURL     string
+	ProfanityTimeout time.Duration
 }
 
 func Load() (Config, error) {
