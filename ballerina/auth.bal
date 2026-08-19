@@ -1,5 +1,6 @@
 // Password hashing (Java interop onto jBCrypt — see Ballerina.toml) and JWT
 // issue/validate (plan.md criterion #4: HS256, secret+expiry from env).
+import ballerina/http;
 import ballerina/jballerina.java;
 import ballerina/jwt;
 
@@ -58,4 +59,14 @@ function parseToken(string token) returns int|error {
         return error("token has no subject");
     }
     return check int:fromString(sub);
+}
+
+// Reads and validates the bearer token directly from the request, rather
+// than a blanket interceptor, since only some resources need it.
+function extractUserId(http:Request req) returns int|error {
+    string|http:HeaderNotFoundError authHeader = req.getHeader("Authorization");
+    if authHeader is http:HeaderNotFoundError || !authHeader.startsWith("Bearer ") {
+        return error("missing bearer token");
+    }
+    return parseToken(authHeader.substring(7));
 }
