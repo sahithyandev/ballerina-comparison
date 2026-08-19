@@ -88,8 +88,11 @@ are feature-complete — see `plan.md` for the full order of work.
 All endpoints from the table above are built and verified in both stacks:
 full post/comment CRUD, ownership checks on writes, pagination, structured
 validation errors, and the profanity check with timeout + graceful fallback
-when the stub is down. Tests, containerization, and the load-test writeup
-(steps 5-8 of `plan.md`) are still pending.
+when the stub is down. Both stacks now have a test suite covering validation,
+auth, ownership checks, and the `GET /posts/{id}` fan-out (see `CLAUDE.md`
+for how to run each). Containerization and the load-test writeup (plan.md
+steps left after "run identical load test" and "fill in RESULTS.md") are
+still pending.
 
 ## Getting Started
 

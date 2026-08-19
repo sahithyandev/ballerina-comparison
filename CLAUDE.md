@@ -37,11 +37,18 @@ regenerate instead when the OpenAPI spec changes.
 **Ballerina**
 ```bash
 cd ballerina && bal build
-cd ballerina && bal test
 cd ballerina && bal run .
 ```
-`ballerina/tests/service_test.bal` currently only has the scaffolded sample
-tests from `bal new` (greeting service) — not real tests for this API yet.
+`ballerina/tests/service_test.bal` is an integration suite: `bal test` starts
+the module's real listener + `dbClient` (config.bal reads env vars at module
+init, same as `bal run`), so tests need the same setup plus a scratch DB and
+an unreachable profanity URL so writes hit the fail-open path deterministically:
+```bash
+cd ballerina
+sqlite3 blog.db < ../schema.sql   # tables must exist before dbClient connects
+JWT_SECRET=test-secret PORT=9099 PROFANITY_URL=http://127.0.0.1:1 bal test
+```
+`@test:BeforeSuite` clears the users/posts/comments tables, so reruns start clean.
 
 **DB setup** (both stacks read/write their own `blog.db` from the same schema):
 ```bash
