@@ -68,36 +68,62 @@ For each criterion, the writeup captures:
 
 ```
 ballerina-comparison/
-├── ballerina/          # Ballerina implementation
-├── go/                 # Go implementation
-├── mock-profanity-api/ # Stub server (any language)
-├── openapi/            # Shared OpenAPI spec (source of truth)
-├── loadtest/           # Reusable load-test script
-├── RESULTS.md          # Comparison writeup
-├── plan.md             # Detailed build plan
-└── LICENSE             # MIT
+├── ballerina/           # Ballerina implementation (bal openapi + java.jdbc + jwt)
+├── go/                  # Go implementation (oapi-codegen + chi + modernc.org/sqlite)
+├── mock-profanity-api/  # Stub server (Go, net/http, no deps)
+├── openapi.yaml         # Shared OpenAPI spec (source of truth for both stacks)
+├── schema.sql           # Shared SQLite schema (users/posts/comments, cascade delete)
+├── seed.sql             # Shared deterministic fixture data
+├── .env.example         # Shared env var template (copy to .env in each stack dir)
+├── plan.md              # Detailed build plan
+├── CLAUDE.md            # Working conventions for this repo (e.g. commit style)
+└── LICENSE              # MIT
 ```
+
+`RESULTS.md` (comparison writeup) and a load-test script land once both stacks
+are feature-complete — see `plan.md` for the full order of work.
+
+## Current Status
+
+All endpoints from the table above are built and verified in both stacks:
+full post/comment CRUD, ownership checks on writes, pagination, structured
+validation errors, and the profanity check with timeout + graceful fallback
+when the stub is down. Tests, containerization, and the load-test writeup
+(steps 5-8 of `plan.md`) are still pending.
 
 ## Getting Started
 
-**Prerequisites**: Ballerina, Go 1.21+, Docker (optional)
+**Prerequisites**: Ballerina 2201.13+, Go 1.21+, `sqlite3`, Docker (optional)
 
-1. Run the shared OpenAPI spec and `schema.sql` to set up both stacks
-2. Start the mock profanity-check server:
+1. Copy the env template and fill in a real `JWT_SECRET` (required — both
+   stacks fail to start without it):
    ```bash
-   cd mock-profanity-api && npm install && npm start
+   cp .env.example ballerina/.env   # or go/.env
    ```
-3. Start either stack (or both):
+2. Create each stack's SQLite file from the shared schema + seed data:
    ```bash
-   # Ballerina
-   cd ballerina && bal run
-
+   cd go && sqlite3 blog.db < ../schema.sql && sqlite3 blog.db < ../seed.sql
+   cd ballerina && sqlite3 blog.db < ../schema.sql && sqlite3 blog.db < ../seed.sql
+   ```
+3. Start the mock profanity-check server:
+   ```bash
+   cd mock-profanity-api && go run .
+   ```
+4. Start either stack (or both, on different `PORT`s — see `.env.example`):
+   ```bash
    # Go
    cd go && go run .
+
+   # Ballerina
+   cd ballerina && bal run .
    ```
-4. Run load tests:
+5. Smoke-test the vertical slice:
    ```bash
-   cd loadtest && ./run.sh
+   curl -X POST localhost:8080/api/v1/auth/register \
+     -H "Content-Type: application/json" \
+     -d '{"username":"carol","email":"carol@example.com","password":"password123"}'
+
+   curl localhost:8080/api/v1/posts/1
    ```
 
 ## License
