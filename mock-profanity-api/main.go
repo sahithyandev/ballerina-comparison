@@ -8,6 +8,13 @@
 //
 //	X-Mock-Delay: 3s      sleep before responding
 //	X-Mock-Status: 500    respond with this status and no body
+//
+// Or force it for every subsequent /check call — useful for integration
+// tests that hit a blog service, which has no reason to forward the headers
+// above on its own outbound call:
+//
+//	POST /control {"delay": "3s", "status": 500}   set
+//	POST /control {}                               clear
 package main
 
 import (
@@ -17,10 +24,41 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 )
 
 var wordlist = []string{"badword", "damn", "heck"}
+
+var (
+	mu           sync.Mutex
+	globalDelay  time.Duration
+	globalStatus int
+)
+
+type controlRequest struct {
+	Delay  string `json:"delay"`
+	Status int    `json:"status"`
+}
+
+func handleControl(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req controlRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid body", http.StatusBadRequest)
+		return
+	}
+	delay, _ := time.ParseDuration(req.Delay)
+
+	mu.Lock()
+	globalDelay, globalStatus = delay, req.Status
+	mu.Unlock()
+
+	w.WriteHeader(http.StatusNoContent)
+}
 
 type checkRequest struct {
 	Text string `json:"text"`
@@ -37,17 +75,25 @@ func handleCheck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	mu.Lock()
+	delay, status := globalDelay, globalStatus
+	mu.Unlock()
+
 	if d := r.Header.Get("X-Mock-Delay"); d != "" {
 		if dur, err := time.ParseDuration(d); err == nil {
-			time.Sleep(dur)
+			delay = dur
 		}
 	}
 	if s := r.Header.Get("X-Mock-Status"); s != "" {
-		var code int
-		if _, err := fmt.Sscanf(s, "%d", &code); err == nil {
-			w.WriteHeader(code)
-			return
-		}
+		fmt.Sscanf(s, "%d", &status)
+	}
+
+	if delay > 0 {
+		time.Sleep(delay)
+	}
+	if status != 0 {
+		w.WriteHeader(status)
+		return
 	}
 
 	var req checkRequest
@@ -77,6 +123,7 @@ func main() {
 		port = "9090"
 	}
 	http.HandleFunc("/check", handleCheck)
+	http.HandleFunc("/control", handleControl)
 	log.Printf("mock-profanity-api listening on :%s", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
