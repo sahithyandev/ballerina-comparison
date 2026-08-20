@@ -1,9 +1,9 @@
-.PHONY: build build-go build-ballerina build-python clean
+.PHONY: build build-go build-ballerina build-python build-node clean
 
 # Compile time / binary size (plan.md Comparison Metrics). Run `make clean`
 # first for a cold-build number; a plain `make build` reuses each
 # toolchain's incremental cache.
-build: build-go build-ballerina build-python
+build: build-go build-ballerina build-python build-node
 
 build-go:
 	@mkdir -p go/bin
@@ -29,5 +29,14 @@ build-python:
 	size=$$(du -sh python/.venv | cut -f1 | tr -d ' '); \
 	echo "python:    $$((end-start))s, $$size (venv, no binary)"
 
+# Node has no compile step either — "build" means npm install, timed and
+# sized the same way as Python's venv row.
+build-node:
+	@start=$$(date +%s); \
+	(cd node && npm install --no-audit --no-fund -q); \
+	end=$$(date +%s); \
+	size=$$(du -sh node/node_modules | cut -f1 | tr -d ' '); \
+	echo "node:      $$((end-start))s, $$size (node_modules, no binary)"
+
 clean:
-	rm -rf go/bin ballerina/target python/.venv python/**/__pycache__ python/__pycache__
+	rm -rf go/bin ballerina/target python/.venv python/**/__pycache__ python/__pycache__ node/node_modules
