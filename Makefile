@@ -2,7 +2,7 @@ STACKS := go ballerina python node bun rust
 
 .PHONY: build build-go build-ballerina build-python build-node build-bun build-rust clean clean-db clean-all \
 	env db test test-go test-ballerina test-python test-node test-bun test-rust \
-	run-go run-ballerina run-python run-node run-bun run-rust run-mock check static
+	run-go run-ballerina run-python run-node run-bun run-rust run-mock check static build-stats
 
 # Verify the toolchains each stack needs are on PATH, with versions.
 check:
@@ -129,3 +129,8 @@ test-rust:
 # Static comparison (LOC/deps, not runtime) — writes results/static.json.
 static:
 	@python3 scripts/static_compare.py
+
+# Build comparison (compile time / output size) — writes results/build.json.
+# Run `make clean-build` first for cold-build numbers.
+build-stats:
+	@python3 scripts/build_compare.py
