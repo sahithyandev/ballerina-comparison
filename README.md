@@ -80,8 +80,7 @@ ballerina-comparison/
 └── LICENSE              # MIT
 ```
 
-`RESULTS.md` (comparison writeup) and a load-test script land once both stacks
-are feature-complete — see `plan.md` for the full order of work.
+`RESULTS.md` — the comparison writeup — see `plan.md` for the full order of work.
 
 ## Current Status
 
@@ -90,9 +89,8 @@ full post/comment CRUD, ownership checks on writes, pagination, structured
 validation errors, and the profanity check with timeout + graceful fallback
 when the stub is down. Both stacks now have a test suite covering validation,
 auth, ownership checks, and the `GET /posts/{id}` fan-out (see `CLAUDE.md`
-for how to run each). Containerization and the load-test writeup (plan.md
-steps left after "run identical load test" and "fill in RESULTS.md") are
-still pending.
+for how to run each). Load testing is done and the comparison writeup is in
+`RESULTS.md`. Containerization is still pending.
 
 ## Getting Started
 
