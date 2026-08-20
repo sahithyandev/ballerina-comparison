@@ -1,7 +1,7 @@
-# Ballerina vs Go vs Python — Backend API Comparison
+# Ballerina vs Go vs Python vs Node.js — Backend API Comparison
 
-Build the *same* backend service in Ballerina, Go, and Python, then compare
-them on code, ergonomics, and behavior — not benchmarks alone.
+Build the *same* backend service in Ballerina, Go, Python, and Node.js, then
+compare them on code, ergonomics, and behavior — not benchmarks alone.
 
 ## The Sample Backend
 
@@ -17,7 +17,7 @@ recognizable — every technical checkbox gets a natural reason to exist.
 - Base path: `/api/v1`
 - Pagination: `?page=&limit=` (1-indexed, default limit 20)
 - Passwords: bcrypt
-- JWT: HS256, secret + expiry from env vars (same values both stacks)
+- JWT: HS256, secret + expiry from env vars (same values across all stacks)
 - `DELETE /posts/{id}` cascades to comments via SQLite `ON DELETE CASCADE`
 - Profanity check: local stub server with a toggle to force slow/failing responses
 
@@ -37,7 +37,7 @@ recognizable — every technical checkbox gets a natural reason to exist.
 
 ## Technical Criteria
 
-Both stacks are evaluated against the same checklist:
+All stacks are evaluated against the same checklist:
 
 1. **REST CRUD** — posts and comments
 2. **Persistence** — SQLite (file-based, zero setup, shared schema)
@@ -45,7 +45,7 @@ Both stacks are evaluated against the same checklist:
 4. **Auth** — JWT bearer auth, ownership checks on write endpoints
 5. **Error handling** — consistent error envelope, no leaking stack traces
 6. **External HTTP call** — profanity-check stub with timeout + graceful fallback
-7. **Concurrency** — fan-out on `GET /posts/{id}` (Ballerina workers vs Go goroutines)
+7. **Concurrency** — fan-out on `GET /posts/{id}` (goroutines/workers/asyncio/Promise.all)
 8. **Structured logging**
 9. **Config via env vars**
 10. **Tests** — unit tests + integration test against the running service
@@ -71,8 +71,9 @@ ballerina-comparison/
 ├── ballerina/           # Ballerina implementation (bal openapi + java.jdbc + jwt)
 ├── go/                  # Go implementation (oapi-codegen + chi + modernc.org/sqlite)
 ├── python/              # Python implementation (FastAPI + uvicorn + stdlib sqlite3)
+├── node/                # Node.js implementation (Express + stdlib node:sqlite)
 ├── mock-profanity-api/  # Stub server (Go, net/http, no deps)
-├── openapi.yaml         # Shared OpenAPI spec (source of truth for both stacks)
+├── openapi.yaml         # Shared OpenAPI spec (source of truth for every stack)
 ├── schema.sql           # Shared SQLite schema (users/posts/comments, cascade delete)
 ├── seed.sql             # Shared deterministic fixture data
 ├── .env.example         # Shared env var template (copy to .env in each stack dir)
@@ -85,7 +86,7 @@ ballerina-comparison/
 
 ## Current Status
 
-All endpoints from the table above are built and verified in all three
+All endpoints from the table above are built and verified in all four
 stacks: full post/comment CRUD, ownership checks on writes, pagination,
 structured validation errors, and the profanity check with timeout +
 graceful fallback when the stub is down. Each stack has a test suite
@@ -95,25 +96,26 @@ comparison writeup is in `RESULTS.md`. Containerization is still pending.
 
 ## Getting Started
 
-**Prerequisites**: Ballerina 2201.13+, Go 1.21+, Python 3.11+, `sqlite3`,
-Docker (optional)
+**Prerequisites**: Ballerina 2201.13+, Go 1.21+, Python 3.11+, Node 22+,
+`sqlite3`, Docker (optional)
 
-1. Copy the env template and fill in a real `JWT_SECRET` (required — all
-   three stacks fail to start without it):
+1. Copy the env template and fill in a real `JWT_SECRET` (required — every
+   stack fails to start without it):
    ```bash
-   cp .env.example ballerina/.env   # or go/.env, python/.env
+   cp .env.example ballerina/.env   # or go/.env, python/.env, node/.env
    ```
 2. Create each stack's SQLite file from the shared schema + seed data:
    ```bash
    cd go && sqlite3 blog.db < ../schema.sql && sqlite3 blog.db < ../seed.sql
    cd ballerina && sqlite3 blog.db < ../schema.sql && sqlite3 blog.db < ../seed.sql
    cd python && sqlite3 blog.db < ../schema.sql && sqlite3 blog.db < ../seed.sql
+   cd node && sqlite3 blog.db < ../schema.sql && sqlite3 blog.db < ../seed.sql
    ```
 3. Start the mock profanity-check server:
    ```bash
    cd mock-profanity-api && go run .
    ```
-4. Start any stack (or all three, on different `PORT`s — see `.env.example`):
+4. Start any stack (or all four, on different `PORT`s — see `.env.example`):
    ```bash
    # Go
    cd go && go run .
@@ -124,6 +126,9 @@ Docker (optional)
    # Python
    cd python && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
    cd python && .venv/bin/python main.py
+
+   # Node
+   cd node && npm install && npm start
    ```
 5. Smoke-test the vertical slice:
    ```bash

@@ -4,17 +4,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-A head-to-head comparison of Ballerina, Go, and Python: the *same* blogging
-platform API (users/posts/comments, JWT auth, SQLite, profanity-check
-external call, concurrent fan-out) is implemented three times, once per
+A head-to-head comparison of Ballerina, Go, Python, and Node.js: the *same*
+blogging platform API (users/posts/comments, JWT auth, SQLite, profanity-check
+external call, concurrent fan-out) is implemented four times, once per
 stack, against one shared `openapi.yaml` contract and one shared
 `schema.sql`. The goal is a comparison writeup (`RESULTS.md`), not a
 production service — see `plan.md` for the full criteria list and
 `README.md` for current status.
 
 Any change to behavior (validation rules, error envelope shape, endpoints)
-should generally be made in **all three** of `ballerina/`, `go/`, and
-`python/` to keep the comparison fair, unless the task is explicitly about
+should generally be made in **all four** of `ballerina/`, `go/`, `python/`,
+and `node/` to keep the comparison fair, unless the task is explicitly about
 one stack only.
 
 ## Commands
@@ -25,6 +25,7 @@ cd mock-profanity-api && go run .        # stub server, port 9090
 cd go && go run .                        # Go API, port 8080 (or PORT from .env)
 cd ballerina && bal run .                # Ballerina API, alt port if run alongside Go
 cd python && .venv/bin/python main.py    # Python API, port 8082 (or PORT from .env)
+cd node && node server.js                # Node API, port 8083 (or PORT from .env)
 ```
 
 **Go**
@@ -64,21 +65,32 @@ per test (via a pytest fixture) and points `PROFANITY_URL` at nothing
 listening, same fail-open trick as the Go/Ballerina suites — no separate
 running service or scratch DB needed.
 
-**DB setup** (both stacks read/write their own `blog.db` from the same schema):
+**Node**
+```bash
+cd node && npm install
+cd node && npm start   # run
+cd node && JWT_SECRET=test-secret PROFANITY_URL=http://127.0.0.1:1 npm test   # test
+```
+`node/test/api.test.js` uses the stdlib `node:test` runner (no jest/mocha
+dependency) and the global `fetch` against a real server bound to an
+ephemeral port, built from a temp SQLite db + `../schema.sql` — same
+fail-open trick as the other three suites.
+
+**DB setup** (each stack reads/writes its own `blog.db` from the same schema):
 ```bash
 sqlite3 blog.db < ../schema.sql && sqlite3 blog.db < ../seed.sql
 ```
 
-Both stacks require a `.env` (copied from `.env.example`) with `JWT_SECRET`
-set — they fail to start without it. Same env var values are used by both
-stacks intentionally (see `.env.example`).
+All four stacks require a `.env` (copied from `.env.example`) with
+`JWT_SECRET` set — they fail to start without it. Same env var values are
+used by all of them intentionally (see `.env.example`).
 
 ## Architecture
 
 **Shared contract, independent implementations.** `openapi.yaml` and
-`schema.sql` at the repo root are the single source of truth all three
+`schema.sql` at the repo root are the single source of truth all four
 stacks implement against; there is no shared code between `ballerina/`,
-`go/`, `python/`, and `mock-profanity-api/`.
+`go/`, `python/`, `node/`, and `mock-profanity-api/`.
 
 **Go** (`go/`): chi router, handlers generated interface from
 `api.gen.go` implemented in `internal/handlers/handlers.go`. Layout:
@@ -113,18 +125,32 @@ the Go package split 1:1 rather than Ballerina's single-file style.
   contract direction is inverted from Go's spec-to-code `oapi-codegen`
   (code-to-spec here instead), a deliberate comparison data point.
 
-**All three stacks implement the same behavioral contract**: consistent JSON error
+**Node** (`node/`): flat module layout, no generated code layer, same 1:1
+package split as Python.
+- `app.js` — builds the Express app + all endpoint routes (exported, not run)
+- `server.js` — entry point: loads config, opens the store, starts listening
+- `store.js` — SQLite access via the stdlib `node:sqlite` module (`DatabaseSync`,
+  experimental as of Node 22+, but needs no native npm dependency)
+- `auth.js` — JWT issue/verify (`jsonwebtoken`) + password hashing (`bcryptjs`)
+- `profanity.js` — profanity-check client using the global `fetch` +
+  `AbortSignal.timeout`, with timeout + fail-open fallback
+- `config.js` — env var config loading
+- `node:sqlite`'s `DatabaseSync` is synchronous, so unlike Go/Python there's
+  no connection pool or lock needed to avoid concurrent-writer races — a
+  deliberate comparison data point on Node's single-threaded execution model.
+
+**All four stacks implement the same behavioral contract**: consistent JSON error
 envelope on all error responses, ownership checks on post/comment writes,
 `GET /posts/{id}` fans out author + comments + comment-authors concurrently
-(goroutines in Go, workers in Ballerina, `asyncio.gather` in Python) and
-joins the results, and the profanity check on post/comment bodies has a
-timeout with fail-open fallback if the stub is unreachable — see
-`README.md`'s Technical Criteria table for the full list.
+(goroutines in Go, workers in Ballerina, `asyncio.gather` in Python,
+`Promise.all` in Node) and joins the results, and the profanity check on
+post/comment bodies has a timeout with fail-open fallback if the stub is
+unreachable — see `README.md`'s Technical Criteria table for the full list.
 
 **mock-profanity-api** (`mock-profanity-api/`): dependency-free `net/http`
 stub, not part of the comparison itself — supports forcing slow/failing
 responses to exercise the timeout/fallback path deterministically in all
-three stacks.
+four stacks.
 
 ## Commit messages
 
