@@ -86,7 +86,7 @@ These are directional numbers, not rigorous benchmarks.
 
 ```
 ballerina-comparison/
-├── ballerina/           # Ballerina implementation (bal openapi + java.jdbc + jwt)
+├── ballerina/           # Ballerina implementation (bal openapi + kanushka/sqlite + jwt)
 ├── go/                  # Go implementation (oapi-codegen + chi + modernc.org/sqlite)
 ├── python/              # Python implementation (FastAPI + uvicorn + stdlib sqlite3)
 ├── node/                # Node.js implementation (Express + stdlib node:sqlite)
@@ -182,7 +182,7 @@ showing up as boilerplate instead of runtime risk.
 
 |                 | Go  | Ballerina           | Python     | Node | Bun        | Rust |
 | --------------- | --- | ------------------- | ---------- | ---- | ---------- | ---- |
-| Direct deps     | 7   | 0 (+2 Java interop) | 6 (+1 dev) | 3    | 2 (+2 dev) | 11   |
+| Direct deps     | 7   | 1 (+1 Java interop) | 6 (+1 dev) | 3    | 2 (+2 dev) | 11   |
 | Transitive deps | 17  | JVM classpath       | n/a        | n/a  | ~17        | ~180 |
 
 #### Go
@@ -193,13 +193,13 @@ the generated layer.
 
 #### Ballerina
 
-0 packages from Ballerina Central, but two Java interop dependencies
-fill gaps Central doesn't cover. `org.xerial:sqlite-jdbc` (no native
-SQLite connector exists, so `java.jdbc` plus this driver jar is the
-only route) and `org.mindrot:jbcrypt` (`ballerina/crypto` has
-hash/hmac/AES but no bcrypt, and none exists on Central either). This is
-the sharpest ecosystem gap in the whole comparison. Two primitives that
-are stdlib-adjacent in Go force Ballerina onto the JVM.
+One Ballerina Central package, `kanushka/sqlite` (itself a thin wrapper
+over `java.jdbc` + `org.xerial:sqlite-jdbc` under the hood — SQLite
+access on Ballerina still bottoms out on the JVM, just packaged for
+Central instead of hand-rolled). bcrypt still has no route through
+Central or `ballerina/crypto` (hash/hmac/AES only), so `org.mindrot:jbcrypt`
+via Java interop remains the only option — the sharper of the two
+ecosystem gaps now that SQLite has a Central package.
 
 #### Python
 
@@ -342,7 +342,7 @@ One cold `make clean && make build` run:
 | Output size              | 17M binary | 61M jar   | 45M venv | 4.8M node_modules | 44M node_modules | 7.3M binary |
 | Startup to first request | ~0.3s\*    | ~1.4s\*   | ~1.6s\*  | ~0.15s\*          | ~0.1s\*          | ~0.05s\*    |
 
-\*Startup includes a polling loop with 50ms granularity, so treat these
+Startup includes a polling loop with 50ms granularity, so treat these
 as "same order of magnitude," not precise.
 
 Ballerina is JVM-backed (`bal build` emits a jar, run via `java -jar`),

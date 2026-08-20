@@ -1,16 +1,16 @@
-// SQLite access via java.jdbc + the sqlite-jdbc driver (declared in
-// Ballerina.toml under [[platform.java21.dependency]]) — Ballerina has no
-// native SQLite client.
-import ballerinax/java.jdbc;
+// SQLite access via kanushka/sqlite, a native Ballerina Central connector
+// (no JDBC/Java interop needed for this data point, unlike bcrypt).
+import kanushka/sqlite;
 import ballerina/sql;
 
 // PRAGMA foreign_keys=ON is mandatory: SQLite defaults it off, which would
 // silently defeat schema.sql's ON DELETE CASCADE (plan.md cascade-delete
-// criterion). It's per-connection, so it's set via the JDBC URL, not once.
-final jdbc:Client dbClient = check new (
-    url = "jdbc:sqlite:" + dbPath + "?foreign_keys=on",
-    connectionPool = {maxOpenConnections: 1}
-);
+// criterion). It's per-connection, so it's set via options, not once.
+final sqlite:Client dbClient = check new ({
+    path: dbPath,
+    options: {properties: {"foreign_keys": "on"}},
+    connectionPool: {maxOpenConnections: 1}
+});
 
 type UserRow record {|
     int id;
@@ -47,16 +47,22 @@ function createUser(string username, string email, string passwordHash) returns 
     return getUserById(id);
 }
 
+// kanushka/sqlite's queryRow/query return untyped `record {}` (unlike
+// ballerinax/java.jdbc, which infers the target record type from context) —
+// cloneWithType() does the conversion at each call site instead.
 function getUserById(int id) returns UserRow|error {
-    return check dbClient->queryRow(`SELECT id, username, email, password_hash, created_at FROM users WHERE id = ${id}`);
+    record {} row = check dbClient->queryRow(`SELECT id, username, email, password_hash, created_at FROM users WHERE id = ${id}`);
+    return row.cloneWithType(UserRow);
 }
 
 function getUserByEmail(string email) returns UserRow|error {
-    return check dbClient->queryRow(`SELECT id, username, email, password_hash, created_at FROM users WHERE email = ${email}`);
+    record {} row = check dbClient->queryRow(`SELECT id, username, email, password_hash, created_at FROM users WHERE email = ${email}`);
+    return row.cloneWithType(UserRow);
 }
 
 function getPostById(int id) returns PostRow|error {
-    return check dbClient->queryRow(`SELECT id, author_id, title, body, published, created_at FROM posts WHERE id = ${id}`);
+    record {} row = check dbClient->queryRow(`SELECT id, author_id, title, body, published, created_at FROM posts WHERE id = ${id}`);
+    return row.cloneWithType(PostRow);
 }
 
 function listCommentsByPost(int postId) returns CommentRow[]|error {
@@ -75,14 +81,15 @@ function listPosts(boolean? published, int 'limit, int offset) returns PostPage|
     sql:ParameterizedQuery filter = published is boolean ? ` WHERE published = ${published ? 1 : 0}` : ``;
     sql:ParameterizedQuery page = ` ORDER BY id LIMIT ${'limit} OFFSET ${offset}`;
 
-    stream<PostRow, sql:Error?> resultStream = dbClient->query(sql:queryConcat(baseQuery, filter, page));
+    stream<record {}, sql:Error?> resultStream = dbClient->query(sql:queryConcat(baseQuery, filter, page));
     PostRow[] posts = [];
-    check from PostRow p in resultStream
+    check from record {} r in resultStream
         do {
-            posts.push(p);
+            posts.push(check r.cloneWithType(PostRow));
         };
 
-    record {|int total;|} countRow = check dbClient->queryRow(sql:queryConcat(countBaseQuery, filter));
+    record {} countRaw = check dbClient->queryRow(sql:queryConcat(countBaseQuery, filter));
+    record {|int total;|} countRow = check countRaw.cloneWithType();
     return {posts, total: countRow.total};
 }
 
@@ -114,8 +121,9 @@ function listCommentsPage(int postId, int 'limit, int offset) returns record {|C
     CommentRow[] comments = check runCommentQuery(
         `SELECT id, post_id, author_id, body, created_at FROM comments
          WHERE post_id = ${postId} ORDER BY id LIMIT ${'limit} OFFSET ${offset}`);
-    record {|int total;|} countRow = check dbClient->queryRow(
+    record {} countRaw = check dbClient->queryRow(
         `SELECT count(*) AS total FROM comments WHERE post_id = ${postId}`);
+    record {|int total;|} countRow = check countRaw.cloneWithType();
     return {comments, total: countRow.total};
 }
 
@@ -126,15 +134,16 @@ function createComment(int postId, int authorId, string body) returns CommentRow
     if id !is int {
         return error("could not determine inserted comment id");
     }
-    return check dbClient->queryRow(`SELECT id, post_id, author_id, body, created_at FROM comments WHERE id = ${id}`);
+    record {} row = check dbClient->queryRow(`SELECT id, post_id, author_id, body, created_at FROM comments WHERE id = ${id}`);
+    return row.cloneWithType(CommentRow);
 }
 
 function runCommentQuery(sql:ParameterizedQuery query) returns CommentRow[]|error {
-    stream<CommentRow, sql:Error?> resultStream = dbClient->query(query);
+    stream<record {}, sql:Error?> resultStream = dbClient->query(query);
     CommentRow[] comments = [];
-    check from CommentRow c in resultStream
+    check from record {} r in resultStream
         do {
-            comments.push(c);
+            comments.push(check r.cloneWithType(CommentRow));
         };
     return comments;
 }

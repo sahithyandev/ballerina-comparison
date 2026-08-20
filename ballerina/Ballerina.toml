@@ -7,13 +7,6 @@ distribution = "2201.13.5"
 [build-options]
 observabilityIncluded = true
 
-# Ballerina has no native SQLite connector (java.jdbc + a JDBC driver jar is
-# the only route) — a real data point for RESULTS.md criterion #2.
-[[platform.java21.dependency]]
-groupId = "org.xerial"
-artifactId = "sqlite-jdbc"
-version = "3.46.1.3"
-
 # ballerina/crypto has no bcrypt (only hash/hmac/AES). No bcrypt package
 # exists on Ballerina Central either — Java interop onto jBCrypt is the only
 # route to match plan.md's bcrypt requirement. A real ecosystem-gap finding.

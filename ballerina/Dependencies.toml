@@ -364,8 +364,19 @@ dependencies = [
 	{org = "ballerina", name = "sql"},
 	{org = "ballerina", name = "time"}
 ]
+
+[[package]]
+org = "kanushka"
+name = "sqlite"
+version = "0.3.0"
+dependencies = [
+	{org = "ballerina", name = "io"},
+	{org = "ballerina", name = "sql"},
+	{org = "ballerinai", name = "observe"},
+	{org = "ballerinax", name = "java.jdbc"}
+]
 modules = [
-	{org = "ballerinax", packageName = "java.jdbc", moduleName = "java.jdbc"}
+	{org = "kanushka", packageName = "sqlite", moduleName = "sqlite"}
 ]
 
 [[package]]
@@ -381,7 +392,7 @@ dependencies = [
 	{org = "ballerina", name = "sql"},
 	{org = "ballerina", name = "test"},
 	{org = "ballerinai", name = "observe"},
-	{org = "ballerinax", name = "java.jdbc"}
+	{org = "kanushka", name = "sqlite"}
 ]
 modules = [
 	{org = "sahithyan", packageName = "blog_ballerina", moduleName = "blog_ballerina"}

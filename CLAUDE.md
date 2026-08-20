@@ -134,7 +134,7 @@ stacks implement against; there is no shared code between `ballerina/`,
 
 **Ballerina** (`ballerina/`): single-package service, no generated code layer.
 - `openapi_service.bal` — the HTTP service and all endpoint resources
-- `db.bal` — SQLite access via `java.jdbc` (no native Ballerina SQLite connector)
+- `db.bal` — SQLite access via `kanushka/sqlite` (Ballerina Central package)
 - `auth.bal` — JWT handling
 - `profanity.bal` — profanity-check client call
 - `types.bal` — request/response/record types

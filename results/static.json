@@ -8,11 +8,11 @@
     }
   },
   "ballerina": {
-    "lines_of_code": 688,
+    "lines_of_code": 697,
     "files": 6,
     "deps": {
-      "direct": 2,
-      "transitive": 34
+      "direct": 1,
+      "transitive": 35
     }
   },
   "python": {
