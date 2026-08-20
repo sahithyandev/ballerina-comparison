@@ -113,46 +113,29 @@ comparison writeup is in `RESULTS.md`. Containerization is still pending.
 **Prerequisites**: Ballerina 2201.13+, Go 1.21+, Python 3.11+, Node 22+,
 Bun 1.3+, Rust 1.75+, `sqlite3`, Docker (optional)
 
-1. Copy the env template and fill in a real `JWT_SECRET` (required — every
-   stack fails to start without it):
+1. Copy the env template into every stack dir and fill in a real
+   `JWT_SECRET` (required — every stack fails to start without it):
    ```bash
-   cp .env.example ballerina/.env   # or go/.env, python/.env, node/.env, bun/.env, rust/.env
+   make env
    ```
 2. Create each stack's SQLite file from the shared schema + seed data:
    ```bash
-   cd go && sqlite3 blog.db < ../schema.sql && sqlite3 blog.db < ../seed.sql
-   cd ballerina && sqlite3 blog.db < ../schema.sql && sqlite3 blog.db < ../seed.sql
-   cd python && sqlite3 blog.db < ../schema.sql && sqlite3 blog.db < ../seed.sql
-   cd node && sqlite3 blog.db < ../schema.sql && sqlite3 blog.db < ../seed.sql
-   cd bun && sqlite3 blog.db < ../schema.sql && sqlite3 blog.db < ../seed.sql
-   cd rust && sqlite3 blog.db < ../schema.sql && sqlite3 blog.db < ../seed.sql
+   make db
    ```
-3. Start the mock profanity-check server:
+3. Install each stack's dependencies (Python venv, npm/bun installs):
    ```bash
-   cd mock-profanity-api && go run .
+   make build
    ```
-4. Start any stack (or all five, on different `PORT`s — see `.env.example`):
+4. Start the mock profanity-check server:
    ```bash
-   # Go
-   cd go && go run .
-
-   # Ballerina
-   cd ballerina && bal run .
-
-   # Python
-   cd python && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
-   cd python && .venv/bin/python main.py
-
-   # Node
-   cd node && npm install && npm start
-
-   # Bun
-   cd bun && bun install && bun start
-
-   # Rust
-   cd rust && cargo run --release
+   make run-mock
    ```
-5. Smoke-test the vertical slice:
+5. Start any stack (or all six, on different `PORT`s — see `.env.example`),
+   each in its own terminal:
+   ```bash
+   make run-go          # or run-ballerina, run-python, run-node, run-bun, run-rust
+   ```
+6. Smoke-test the vertical slice:
    ```bash
    curl -X POST localhost:8080/api/v1/auth/register \
      -H "Content-Type: application/json" \
