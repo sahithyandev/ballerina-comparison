@@ -2,7 +2,19 @@ STACKS := go ballerina python node bun rust
 
 .PHONY: build build-go build-ballerina build-python build-node build-bun build-rust clean clean-db clean-all \
 	env db test test-go test-ballerina test-python test-node test-bun test-rust \
-	run-go run-ballerina run-python run-node run-bun run-rust run-mock
+	run-go run-ballerina run-python run-node run-bun run-rust run-mock check static
+
+# Verify the toolchains each stack needs are on PATH, with versions.
+check:
+	@ok=1; \
+	for c in go bal python3 node bun cargo sqlite3; do \
+		if ! command -v $$c >/dev/null 2>&1; then echo "$$c: MISSING"; ok=0; continue; fi; \
+		if [ "$$c" = go ]; then v=$$(go version); else v=$$($$c --version 2>&1 | head -1); fi; \
+		echo "$$c: $$v"; \
+	done; \
+	[ $$ok -eq 1 ] || (echo "missing prerequisites above"; exit 1)
+
+setup: env db
 
 # Copy .env.example into every stack dir (skips ones that already have a .env).
 env:
@@ -113,3 +125,7 @@ test-bun:
 	cd bun && JWT_SECRET=test-secret PROFANITY_URL=http://127.0.0.1:1 bun test
 test-rust:
 	cd rust && cargo test
+
+# Static comparison (LOC/deps, not runtime) — writes results/static.json.
+static:
+	@python3 scripts/static_compare.py

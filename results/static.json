@@ -1,0 +1,32 @@
+{
+  "go": {
+    "loc": 948,
+    "files": 8,
+    "deps": 7
+  },
+  "ballerina": {
+    "loc": 688,
+    "files": 6,
+    "deps": 2
+  },
+  "python": {
+    "loc": 647,
+    "files": 6,
+    "deps": 6
+  },
+  "node": {
+    "loc": 546,
+    "files": 6,
+    "deps": 3
+  },
+  "bun": {
+    "loc": 554,
+    "files": 6,
+    "deps": 2
+  },
+  "rust": {
+    "loc": 1039,
+    "files": 9,
+    "deps": 11
+  }
+}

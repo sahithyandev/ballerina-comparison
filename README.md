@@ -11,7 +11,7 @@ In this repository, I am comparing the performance, code size, developer ergonom
 | Bun        | Elysia     | 1.3+      |
 | Rust       | axum       | 1.75+     |
 
-Each one is included in their own directory. Other stacks may be added in the future.
+Each one is included in their own directory. Other stacks may be added in the future. Run `make check` to verify the toolchains each stack needs are on PATH.
 
 ## What I Built
 
@@ -62,7 +62,6 @@ All stacks are evaluated against the same checklist:
 8. **Structured logging**
 9. **Config via env vars**
 10. **Tests** — unit tests + integration test against the running service
-11. **Containerization** — Dockerfile for each stack
 
 ## Comparison Metrics
 
@@ -111,29 +110,21 @@ comparison writeup is in `RESULTS.md`. Containerization is still pending.
 
 ## Getting Started
 
-1. Copy the env template into every stack dir and fill in a real
-   `JWT_SECRET` (required — every stack fails to start without it):
-   ```bash
-   make env
-   ```
-2. Create each stack's SQLite file from the shared schema + seed data:
-   ```bash
-   make db
-   ```
-3. Install each stack's dependencies (Python venv, npm/bun installs):
+1. Run `make setup` to copy the env template and create the SQLite file.
+2. Install each stack's dependencies (Python venv, npm/bun installs):
    ```bash
    make build
    ```
-4. Start the mock profanity-check server:
+3. Start the mock profanity-check server:
    ```bash
    make run-mock
    ```
-5. Start any stack (or all six, on different `PORT`s — see `.env.example`),
+4. Start any stack (or all six, on different `PORT`s — see `.env.example`),
    each in its own terminal:
    ```bash
    make run-go          # or run-ballerina, run-python, run-node, run-bun, run-rust
    ```
-6. Smoke-test the vertical slice:
+5. Smoke-test the vertical slice:
    ```bash
    curl -X POST localhost:8080/api/v1/auth/register \
      -H "Content-Type: application/json" \
