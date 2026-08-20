@@ -1,0 +1,122 @@
+{
+  "go": {
+    "GET /posts/{id}": {
+      "rps": 4327.1,
+      "avg_ms": 11.6,
+      "p99_ms": 23.6,
+      "duration_s": 30.006,
+      "statuses": {
+        "200": 129838
+      }
+    },
+    "POST /posts": {
+      "rps": 4033.6,
+      "avg_ms": 2.5,
+      "p99_ms": 7.4,
+      "duration_s": 10.0015,
+      "statuses": {
+        "201": 40342
+      }
+    }
+  },
+  "ballerina": {
+    "GET /posts/{id}": {
+      "rps": 2697.9,
+      "avg_ms": 18.5,
+      "p99_ms": 29.3,
+      "duration_s": 30.0143,
+      "statuses": {
+        "200": 80977
+      }
+    },
+    "POST /posts": {
+      "rps": 3089.8,
+      "avg_ms": 3.2,
+      "p99_ms": 25.6,
+      "duration_s": 10.0027,
+      "statuses": {
+        "201": 30906
+      }
+    }
+  },
+  "python": {
+    "GET /posts/{id}": {
+      "rps": 1439.7,
+      "avg_ms": 34.7,
+      "p99_ms": 44.7,
+      "duration_s": 30.0238,
+      "statuses": {
+        "200": 43224
+      }
+    },
+    "POST /posts": {
+      "rps": 271.2,
+      "avg_ms": 36.9,
+      "p99_ms": 45.6,
+      "duration_s": 10.0056,
+      "statuses": {
+        "201": 2714
+      }
+    }
+  },
+  "node": {
+    "GET /posts/{id}": {
+      "rps": 7849.4,
+      "avg_ms": 6.4,
+      "p99_ms": 11.9,
+      "duration_s": 30.0059,
+      "statuses": {
+        "200": 235529
+      }
+    },
+    "POST /posts": {
+      "rps": 2945.9,
+      "avg_ms": 3.4,
+      "p99_ms": 7.4,
+      "duration_s": 10.003,
+      "statuses": {
+        "201": 29468
+      }
+    }
+  },
+  "bun": {
+    "GET /posts/{id}": {
+      "rps": 15274.4,
+      "avg_ms": 3.3,
+      "p99_ms": 6.3,
+      "duration_s": 30.0032,
+      "statuses": {
+        "200": 458280
+      }
+    },
+    "POST /posts": {
+      "rps": 3267.2,
+      "avg_ms": 3.1,
+      "p99_ms": 6.6,
+      "duration_s": 10.0031,
+      "statuses": {
+        "201": 32682
+      }
+    }
+  },
+  "rust": {
+    "GET /posts/{id}": {
+      "rps": 6612.0,
+      "avg_ms": 7.6,
+      "p99_ms": 15.5,
+      "duration_s": 30.0051,
+      "statuses": {
+        "200": 198393
+      }
+    },
+    "POST /posts": {
+      "rps": 3993.4,
+      "avg_ms": 2.5,
+      "p99_ms": 3.8,
+      "duration_s": 10.0022,
+      "statuses": {
+        "201": 39943
+      }
+    }
+  }
+}

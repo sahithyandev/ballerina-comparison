@@ -145,17 +145,18 @@ These results are from one run each, on my personal machine (MacBook Air M4).
 
 ### Lines of code
 
-|                        | Go   | Ballerina | Python | Node | Bun  | Rust |
-| ---------------------- | ---- | --------- | ------ | ---- | ---- | ---- |
-| Hand-written           | 948  | 826       | 647    | 546  | 554  | 1039 |
-| Generated from OpenAPI | 2048 | none      | none   | none | none | none |
-| Tests                  | 300  | 138       | 173    | 199  | 192  | 265  |
+|                        | Go  | Ballerina | Python | Node | Bun  | Rust |
+| ---------------------- | --- | --------- | ------ | ---- | ---- | ---- |
+| Hand-written           | 948 | 697       | 647    | 546  | 554  | 1039 |
+| Generated from OpenAPI | 800 | none      | none   | none | none | none |
+| Tests                  | 300 | 138       | 173    | 199  | 192  | 265  |
 
-Go's hand-written number looks small, but that's because `oapi-codegen`
-generates 800 lines of request/response types and routing interface from
+(From `results/static.json`, via `make static`.)
+
+Go's hand-written number looks small. But `oapi-codegen` generates 800
+lines of request/response types and routing interface from
 `openapi.yaml` on top of it. Ballerina has no codegen step at all, so
-`types.bal` is written by hand, which is why it ends up roughly the same
-size as what Go generates for free.
+`types.bal` is written by hand — a chunk of what Go gets for free.
 
 Python and Node both come in smaller despite also having no codegen layer.
 Python's stdlib `sqlite3` calls plus FastAPI/pydantic's declarative models
@@ -169,8 +170,9 @@ replace every hand-written `if` check, saving lines on validation, but
 TypeScript's type annotations add roughly the same number back. A wash,
 not a net win.
 
-Rust is the largest hand-written total of the six, ahead even of Go's
-generated-included total. `store.rs` hand-writes a row-mapper per table
+Rust is the largest hand-written total of the six, though still smaller
+than Go's hand-written-plus-generated total (948 + 800 = 1748). `store.rs`
+hand-writes a row-mapper per table
 (rusqlite has nothing like pydantic's or TypeBox's derive layer), `app.rs`
 hand-writes both the wire DTOs and their conversions from store types
 (axum has no equivalent to FastAPI's response-model serialization), and
@@ -183,7 +185,12 @@ showing up as boilerplate instead of runtime risk.
 |                 | Go  | Ballerina           | Python     | Node | Bun        | Rust |
 | --------------- | --- | ------------------- | ---------- | ---- | ---------- | ---- |
 | Direct deps     | 7   | 1 (+1 Java interop) | 6 (+1 dev) | 3    | 2 (+2 dev) | 11   |
-| Transitive deps | 17  | JVM classpath       | n/a        | n/a  | ~17        | ~180 |
+| Transitive deps | 17  | 35                  | n/a        | 80   | 42         | 196  |
+
+(From `results/static.json`, via `make static`. Ballerina's transitive
+count is `ballerina/*` stdlib packages pulled in by Central, not a JVM
+classpath dump. Python has no committed lock file, so its transitive
+count stays n/a.)
 
 #### Go
 
@@ -220,22 +227,22 @@ smallest direct-dependency count of any stack besides Bun.
 elysia, `@elysiajs/jwt`. Two direct runtime deps, the smallest of any
 stack (plus `typescript` and `@types/bun`, dev-only). SQLite and bcrypt
 need nothing beyond `bun:sqlite` and `Bun.password`, both built into the
-runtime. Bun is the only stack where neither of Ballerina's two
-Java-interop primitives costs so much as a `pip install`.
+runtime. Neither of Ballerina's two Java-interop primitives costs Bun
+so much as a `pip install`.
 
 #### Rust
 
 axum, tokio, serde/serde_json, rusqlite (bundled feature, compiles
 SQLite's C source straight into the binary), jsonwebtoken, bcrypt,
 reqwest, tracing/tracing-subscriber, futures. 11 direct deps, the most
-of any stack, and by far the deepest transitive tree (~180 crates,
-mostly pulled in by axum/tokio/reqwest's async stack and reqwest's TLS).
-Neither SQLite nor bcrypt is a problem here, both compile straight into
-the binary, but the crate ecosystem is granular (async runtime, HTTP
-client, TLS, and JSON are all separate crates that other frameworks
-bundle for you), so a comparable feature set costs more direct
-dependencies than Go even though nothing here is an interop boundary the
-way Ballerina's Java calls are.
+of any stack. Also the deepest transitive tree, 196 crates, mostly
+pulled in by axum/tokio/reqwest's async stack and reqwest's TLS.
+Neither SQLite nor bcrypt is a problem here — both compile straight
+into the binary. But the crate ecosystem is granular: async runtime,
+HTTP client, TLS, and JSON are all separate crates that other
+frameworks bundle for you. So a comparable feature set costs more
+direct dependencies than Go, even though nothing here is an interop
+boundary the way Ballerina's Java calls are.
 
 ### Compile-time vs runtime error catching
 
@@ -334,16 +341,20 @@ mattering.
 
 ### Startup and build
 
-One cold `make clean && make build` run:
+|                          | Go           | Ballerina | Python     | Node              | Bun                | Rust        |
+| ------------------------ | ------------ | --------- | ---------- | ----------------- | ------------------ | ----------- |
+| Cold build/setup time    | 1.2s         | 6.7s      | 4.5s       | 0.4s              | <0.1s              | 29.5s       |
+| Output size              | 17.5M binary | 64.1M jar | 41.6M venv | 2.8M node_modules | 39.3M node_modules | 7.7M binary |
+| Startup to first request | 10ms\*       | 822ms\*   | 209ms\*    | 79ms\*            | 39ms\*             | 14ms\*      |
 
-|                          | Go         | Ballerina | Python   | Node              | Bun              | Rust        |
-| ------------------------ | ---------- | --------- | -------- | ----------------- | ---------------- | ----------- |
-| Cold build/setup time    | 2s         | 8s        | 5s       | <1s               | <1s              | 31s         |
-| Output size              | 17M binary | 61M jar   | 45M venv | 4.8M node_modules | 44M node_modules | 7.3M binary |
-| Startup to first request | ~0.3s\*    | ~1.4s\*   | ~1.6s\*  | ~0.15s\*          | ~0.1s\*          | ~0.05s\*    |
+(`results/build.json` via `make build-stats`, `results/startup.json` via
+`make startup-stats`. Build times delete each stack's build cache first, so
+they're cold; toolchain package/registry caches stay warm.)
 
-Startup includes a polling loop with 50ms granularity, so treat these
-as "same order of magnitude," not precise.
+\*Startup polls every 10ms, so treat sub-20ms numbers (Go, Rust) as "at or
+below this measurement's resolution," not exact. Re-running shows some
+noise, especially on Ballerina and Python (JVM/uvicorn import time) — the
+Ballerina number above ranged 800ms–1070ms across runs.
 
 Ballerina is JVM-backed (`bal build` emits a jar, run via `java -jar`),
 which explains both the larger output and the slower cold start. Go
@@ -352,49 +363,51 @@ compiles to a static native binary.
 Python has no build step at all. "Cold build" here is really `pip
 install` populating a venv, and "output size" is that venv's size, not a
 deployable artifact. Startup is dominated by uvicorn and FastAPI import
-time, landing in the same ballpark as Ballerina's JVM cold start despite
-never touching a bytecode-compiled runtime.
+time — slower than every stack but Ballerina, despite never touching a
+bytecode-compiled runtime.
 
 Node has no build step either, "cold build" is `npm install` populating
 `node_modules`, but its tiny dependency count (3 direct packages) makes
 both install time and startup among the fastest of any stack.
 
-Bun has no build step, "cold build" is `bun install`, sub-second even
-though `bun/node_modules` (44M) is nearly 10x Node's, almost entirely
-`jose` pulled in transitively by `@elysiajs/jwt`. Bun's installer is
-simply that fast. Startup edges out even Node's in this run, but both
-are close enough that "fastest of any stack" is a two-way tie within
-this measurement's noise.
+Bun has no build step, "cold build" is `bun install`, well under a
+second even though `bun/node_modules` (39M) is nearly 14x Node's,
+almost entirely `jose` pulled in transitively by `@elysiajs/jwt`. Bun's
+installer is simply that fast, and its startup comes in about 2x
+quicker than Node's in this run.
 
 Rust is the clear outlier on build time. `cargo build --release` (with
 Cargo's registry cache warm but `rust/target` removed first) takes
-~31s, over 15x Go's, almost entirely LLVM optimizing ~180 transitive
+~30s, about 20x Go's, almost entirely LLVM optimizing ~196 transitive
 crates. The dependency-tree cost from the earlier table showing up
 directly as compile time.
 
-The payoff is a 7.3M static binary, smaller than Go's 17M and the
-smallest compiled artifact of any stack, and the fastest startup
-measured, at or below this measurement's 50ms polling granularity. No
-JIT warmup, no bytecode loading, no runtime import graph to walk. Note
-that `cargo build` without `--release` is sub-second once dependencies
-are compiled once, the same incremental story as Go. The 31s number is
-specifically the optimizing release build that the load-test and
-production numbers use.
+The payoff is a 7.7M static binary, smaller than Go's 17.5M and the
+smallest compiled artifact of any stack, and startup within a few ms of
+Go's at this measurement's 10ms polling resolution — both near the
+floor of what this method can distinguish. No JIT warmup, no bytecode loading,
+no runtime import graph to walk. Note that `cargo build` without
+`--release` is sub-second once dependencies are compiled once, the same
+incremental story as Go. The ~30s number is specifically the optimizing
+release build that the load-test and production numbers use.
 
 ### Load test
 
 `loadtest/run.sh`, `hey`, same machine, same DB, same fixture data (see
-`loadtest/results/`). Ballerina/Go/Python/Node were captured in one
-sitting, Bun in a later session, Rust in a third. Same machine, but not
-guaranteed identical background load across sessions, so don't over-read
-a close cross-session call (Bun vs Node, Rust vs Go/Node):
+`loadtest/results/`), same duration for every stack on a given endpoint
+(30s GET, 10s POST). Go/Python/Node were captured in one sitting,
+Bun in a later session, Rust in a third, Ballerina in a fourth (its
+first POST capture accidentally ran 20s instead of 10s — recaptured for
+duration parity with the rest). Same machine, but not guaranteed
+identical background load across sessions, so don't over-read a close
+cross-session call (Bun vs Node, Rust vs Go/Node):
 
 | Stack     | Endpoint          | Req/s | Avg latency | p99    | Duration |
 | --------- | ----------------- | ----- | ----------- | ------ | -------- |
 | Go        | `GET /posts/{id}` | 4327  | 11.6ms      | 23.6ms | 30s      |
 | Go        | `POST /posts`     | 4034  | 2.5ms       | 7.4ms  | 10s      |
-| Ballerina | `GET /posts/{id}` | 3479  | 14.4ms      | 28.1ms | 30s      |
-| Ballerina | `POST /posts`     | 1546  | 2.9ms       | 9.5ms  | 20s      |
+| Ballerina | `GET /posts/{id}` | 2698  | 18.5ms      | 29.3ms | 30s      |
+| Ballerina | `POST /posts`     | 3090  | 3.2ms       | 25.6ms | 10s      |
 | Python    | `GET /posts/{id}` | 1440  | 34.7ms      | 44.7ms | 30s      |
 | Python    | `POST /posts`     | 271   | 36.9ms      | 45.6ms | 10s      |
 | Node      | `GET /posts/{id}` | 7849  | 6.4ms       | 11.9ms | 30s      |
@@ -405,8 +418,11 @@ a close cross-session call (Bun vs Node, Rust vs Go/Node):
 | Rust      | `POST /posts`     | 3993  | 2.5ms       | 3.8ms  | 10s      |
 
 Node beats Go, Ballerina, and Python on the read path (about 1.8x Go's
-req/s) and comes second only to Go on writes. This is the flip side of
-the concurrency finding above. `node:sqlite`'s `DatabaseSync` is
+req/s), though on writes it now lands behind Go, Rust, Bun, and
+Ballerina — Node's single-threaded write path pays a fixed per-request
+cost that a fan-out-free write doesn't let it avoid. The read-path win
+is the flip side of the concurrency finding above. `node:sqlite`'s
+`DatabaseSync` is
 synchronous and needs no lock or connection-pool ceremony, there's only
 ever one JS thread touching it, and V8's JIT plus Express's thin routing
 layer keep per-request overhead low. The same single-threaded model that
@@ -588,8 +604,8 @@ with Node, one of two stacks with zero compile-time checking.
 Smallest hand-written codebase overall. Fewest direct dependencies (3)
 of any stack outside Bun, and one of only two stacks where the SQLite
 dependency is a zero-install stdlib module. Fast cold build and
-startup. Fast on the read path of the load test, narrowly behind Go on
-writes.
+startup. Fast on the read path of the load test; on writes it trails
+Go, Rust, Bun, and Ballerina.
 
 Its cost mirrors Python's on rigor, no compile-time checking, and its
 fan-out concurrency is the least "real" alongside Bun's. A
@@ -616,8 +632,9 @@ for the same single-threaded reason.
 
 #### Rust
 
-Smallest and fastest compiled artifact of any stack (7.3M binary,
-sub-50ms startup, beating even Go's 17M/~0.3s). Ties Go on the
+Smallest compiled artifact of any stack (7.7M binary, vs Go's 17.5M),
+and startup within a few ms of Go's at this measurement's 10ms
+resolution. Ties Go on the
 write-path load test (3993 vs 4034 req/s) despite genuinely parallel
 OS-thread dispatch rather than Go's goroutines. Strongest compile-time
 guarantees alongside Go, `serde`-typed request bodies and an
@@ -628,7 +645,7 @@ interop, closing Ballerina's exact ecosystem gap the same way Bun's
 built-ins do, just via crates instead of a bundled runtime.
 
 The cost is the most dependency-heavy build of the six (11 direct,
-~180 transitive) and by far the slowest cold build (~31s, 15x Go's).
+196 transitive) and by far the slowest cold build (~30s, ~20x Go's).
 Rust's granular crate ecosystem and LLVM optimization pay for
 themselves at startup and runtime, not at compile time. It's also the
 one stack where the load test complicates the "real concurrency wins"

@@ -2,7 +2,8 @@ STACKS := go ballerina python node bun rust
 
 .PHONY: build build-go build-ballerina build-python build-node build-bun build-rust clean clean-db clean-all \
 	env db test test-go test-ballerina test-python test-node test-bun test-rust \
-	run-go run-ballerina run-python run-node run-bun run-rust run-mock check static build-stats
+	run-go run-ballerina run-python run-node run-bun run-rust run-mock check static build-stats \
+	loadtest-stats startup-stats stats
 
 # Verify the toolchains each stack needs are on PATH, with versions.
 check:
@@ -131,6 +132,20 @@ static:
 	@python3 scripts/static_compare.py
 
 # Build comparison (compile time / output size) — writes results/build.json.
-# Run `make clean-build` first for cold-build numbers.
+# Deletes each stack's build cache first, so the timed build is always cold.
 build-stats:
 	@python3 scripts/build_compare.py
+
+# Load-test comparison (req/s, latency) — writes results/loadtest.json, from
+# the committed loadtest/results/*.txt (no servers needed). Run
+# loadtest/run.sh first to capture new numbers.
+loadtest-stats:
+	@python3 scripts/loadtest_compare.py
+
+# Startup-time comparison — writes results/startup.json. Needs `make setup`
+# and `make build` first (starts each stack's already-built artifact).
+startup-stats:
+	@python3 scripts/startup_compare.py
+
+# Everything behind the README's Results section, in one shot.
+stats: static build-stats loadtest-stats startup-stats
