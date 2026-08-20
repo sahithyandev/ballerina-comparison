@@ -6,11 +6,11 @@ below are from this machine, one run each — directional, not benchmark-grade
 
 ## Lines of code
 
-| | Go | Ballerina | Python | Node |
-|---|---|---|---|---|
-| Hand-written | 948 | 826 | 647 | 546 |
-| + generated (`api.gen.go` from OpenAPI) | 2048 | — (no codegen layer) | — (no codegen layer) | — (no codegen layer) |
-| Tests | 300 (10 tests) | 138 (7 tests) | 173 (11 tests) | 199 (11 tests) |
+|                                         | Go             | Ballerina            | Python               | Node                 |
+| --------------------------------------- | -------------- | -------------------- | -------------------- | -------------------- |
+| Hand-written                            | 948            | 826                  | 647                  | 546                  |
+| + generated (`api.gen.go` from OpenAPI) | 2048           | — (no codegen layer) | — (no codegen layer) | — (no codegen layer) |
+| Tests                                   | 300 (10 tests) | 138 (7 tests)        | 173 (11 tests)       | 199 (11 tests)       |
 
 Go's hand-written total looks smaller, but it leans on `oapi-codegen` to
 generate 800 lines of request/response types + routing interface from
@@ -28,42 +28,47 @@ types layer to lean on).
 
 ## Dependencies
 
-**Go** (`go.mod`): 7 direct deps — chi (router), golang-jwt, golang.org/x/crypto
-(bcrypt), golang.org/x/sync, modernc.org/sqlite (pure-Go, no CGO), plus
-kin-openapi/oapi-codegen/runtime for the generated layer. 17 more pulled in
-transitively.
+|                  | Go                           | Ballerina                               | Python            | Node                 |
+| ---------------- | ---------------------------- | --------------------------------------- | ----------------- | -------------------- |
+| Direct deps      | 7                            | 0 (+2 Java interop)                     | 6 (+1 dev-only)   | 3                    |
+| Transitive deps  | 17                           | JVM classpath (jdbc driver, jbcrypt)    | —                 | —                    |
+| Router/framework | chi                          | built-in `http:Service`                 | FastAPI + uvicorn | express              |
+| JWT              | golang-jwt                   | built-in `jwt` module                   | pyjwt             | jsonwebtoken         |
+| bcrypt           | golang.org/x/crypto          | `org.mindrot:jbcrypt` (Java interop)    | bcrypt            | bcryptjs (pure JS)   |
+| SQLite driver    | modernc.org/sqlite (pure Go) | `org.xerial:sqlite-jdbc` (Java interop) | stdlib `sqlite3`  | stdlib `node:sqlite` |
+| OpenAPI codegen  | kin-openapi/oapi-codegen     | —                                       | —                 | —                    |
 
-**Ballerina** (`Ballerina.toml`): 0 Ballerina Central packages. Two *Java*
-interop dependencies instead:
-- `org.xerial:sqlite-jdbc` — Ballerina has no native SQLite connector;
-  `java.jdbc` + this driver jar is the only route.
-- `org.mindrot:jbcrypt` — `ballerina/crypto` has hash/hmac/AES but no
-  bcrypt, and none exists on Central either. Password hashing only works via
-  Java interop onto jBCrypt.
+**Go**: chi, golang-jwt, golang.org/x/crypto (bcrypt), golang.org/x/sync,
+modernc.org/sqlite (pure-Go, no CGO), plus kin-openapi/oapi-codegen/runtime
+for the generated layer.
 
-This is the sharpest ecosystem-maturity gap in the comparison: two
-plan-mandated primitives (SQLite, bcrypt) that are stdlib-adjacent in Go
-require dropping to the JVM in Ballerina.
+**Ballerina**: 0 Ballerina Central packages, but two _Java_ interop
+dependencies fill gaps Central doesn't cover — `org.xerial:sqlite-jdbc`
+(no native SQLite connector; `java.jdbc` + this driver jar is the only
+route) and `org.mindrot:jbcrypt` (`ballerina/crypto` has hash/hmac/AES but
+no bcrypt, and none exists on Central either). This is the sharpest
+ecosystem-maturity gap in the comparison: two plan-mandated primitives
+(SQLite, bcrypt) that are stdlib-adjacent in Go require dropping to the JVM
+in Ballerina.
 
-**Python** (`requirements.txt`): 6 direct packages — fastapi, uvicorn,
-pydantic, pyjwt, bcrypt, httpx (`pytest` is dev-only, kept in
-`requirements-dev.txt` so it doesn't inflate the runtime count). SQLite needs
-nothing beyond the `sqlite3` stdlib module, and bcrypt is one `pip install`
-away — both of the primitives that force Ballerina to Java interop are
-trivially available here, same as in Go.
+**Python**: fastapi, uvicorn, pydantic, pyjwt, bcrypt, httpx (`pytest` is
+dev-only, kept in `requirements-dev.txt` so it doesn't inflate the runtime
+count). SQLite needs nothing beyond the `sqlite3` stdlib module, and bcrypt
+is one `pip install` away — both of the primitives that force Ballerina to
+Java interop are trivially available here, same as in Go.
 
-**Node** (`package.json`): 3 direct packages — express, jsonwebtoken,
-bcryptjs (pure-JS, no native compile step). SQLite needs nothing beyond the
-stdlib `node:sqlite` module (`DatabaseSync`, experimental as of Node 22+) —
-the smallest direct-dependency count of any stack, and, like Python, neither
-of Ballerina's two forced-into-Java-interop primitives is a problem here.
+**Node**: express, jsonwebtoken, bcryptjs (pure-JS, no native compile step).
+SQLite needs nothing beyond the stdlib `node:sqlite` module (`DatabaseSync`,
+experimental as of Node 22+) — the smallest direct-dependency count of any
+stack, and, like Python, neither of Ballerina's two forced-into-Java-interop
+primitives is a problem here.
 
 ## Compile-time vs runtime error catching
 
 - **Validation (#3)**: Go and Ballerina catch structural errors (missing
   field, wrong type) at compile time via their type systems / generated
   bindings; Python's pydantic models and Node's hand-written checks both
-  catch the same structural errors only at *runtime*, on each request — no
+  catch the same structural errors only at _runtime_, on each request — no
   compile step exists for either, so a typo in a field name or type is
   invisible until it's exercised by a request (or a test). Semantic
   validation (empty title, malformed email) is runtime code in all four —
@@ -77,7 +82,7 @@ of Ballerina's two forced-into-Java-interop primitives is a problem here.
   version uses the global `fetch` + `AbortSignal.timeout`, both stdlib as of
   Node 18+, so it needs no HTTP client dependency at all, the same story as
   Python's `httpx` minus the extra package.
-- None of the four stacks catches a wrong profanity-API response *shape* at
+- None of the four stacks catches a wrong profanity-API response _shape_ at
   compile time — all four discover a malformed JSON body from the stub only
   at runtime, and all four treat that as fail-open too.
 
@@ -85,22 +90,25 @@ of Ballerina's two forced-into-Java-interop primitives is a problem here.
 
 All four fan out three lookups (author, comments, comment-authors) and join:
 
-- **Go**: goroutines + `golang.org/x/sync/errgroup`, results collected via
-  shared vars closed over by each goroutine.
-- **Ballerina**: named workers (`worker fetchAuthor`, etc.) inside the
-  resource function, joined implicitly at function return / explicit `wait`.
-- **Python**: `asyncio.gather` over `asyncio.to_thread`-wrapped calls into
-  the sync `sqlite3` store — there's no async SQLite driver in play, so the
-  "concurrency" here is really thread-pool parallelism dressed in `async`/
-  `await` syntax, not a single-threaded event loop doing I/O-bound overlap
-  the way `asyncio.gather` normally implies.
-- **Node**: `Promise.all` over calls into the *synchronous* `node:sqlite`
-  store. There's no thread pool and no real overlap here either — the calls
-  run back-to-back on the single JS thread, and `Promise.all` is really just
-  a clean way to express "do these, then continue" rather than genuine
-  parallelism. Of the four, this is the most honest about not actually
-  parallelizing the DB calls; it just doesn't pretend to via `async`/`await`
-  syntax the way Python's version does.
+|                               | Go                      | Ballerina                            | Python                                              | Node                                |
+| ----------------------------- | ----------------------- | ------------------------------------ | --------------------------------------------------- | ----------------------------------- |
+| Mechanism                     | goroutines + `errgroup` | named workers (`worker fetchAuthor`) | `asyncio.gather`                                    | `Promise.all`                       |
+| Join point                    | `errgroup.Wait()`       | implicit at function return / `wait` | `await gather(...)`                                 | `await Promise.all(...)`            |
+| DB call underneath            | pooled `*sql.DB`        | pooled JDBC connection               | sync `sqlite3` via `to_thread`                      | sync `node:sqlite` (`DatabaseSync`) |
+| Actually parallel against DB? | yes                     | yes (JVM threads)                    | no — thread-pool dispatch, serialized behind a lock | no — single JS thread, sequential   |
+
+Go uses goroutines + `golang.org/x/sync/errgroup`, results collected via
+shared vars closed over by each goroutine. Ballerina's named workers read
+closer to sequential code, joined implicitly at function return or an
+explicit `wait`. Python's `asyncio.gather` wraps the sync `sqlite3` store in
+`asyncio.to_thread` — there's no async SQLite driver in play, so the
+"concurrency" here is thread-pool parallelism dressed in `async`/`await`
+syntax, not a single-threaded event loop doing I/O-bound overlap the way
+`asyncio.gather` normally implies. Node's `Promise.all` wraps the
+_synchronous_ `node:sqlite` store — no thread pool and no real overlap
+either, the calls run back-to-back on the single JS thread; of the four this
+is the most honest about not actually parallelizing the DB calls, it just
+doesn't pretend to via `async`/`await` syntax the way Python's version does.
 
 Ballerina's worker syntax reads closer to sequential code (no explicit
 channel or waitgroup wiring) at the cost of being a language-level construct
@@ -117,11 +125,11 @@ driver.
 
 One cold `make clean && make build` run:
 
-| | Go | Ballerina | Python | Node |
-|---|---|---|---|---|
-| Cold build/setup time | 2s | 8s | 5s | <1s |
-| Output size | 17M binary | 61M jar | 45M (venv, no binary) | 4.8M (node_modules, no binary) |
-| Process startup (to first accepted request) | ~0.3s\* | ~1.4s\* | ~1.6s\* | ~0.15s\* |
+|                                             | Go         | Ballerina | Python                | Node                           |
+| ------------------------------------------- | ---------- | --------- | --------------------- | ------------------------------ |
+| Cold build/setup time                       | 2s         | 8s        | 5s                    | <1s                            |
+| Output size                                 | 17M binary | 61M jar   | 45M (venv, no binary) | 4.8M (node_modules, no binary) |
+| Process startup (to first accepted request) | ~0.3s\*    | ~1.4s\*   | ~1.6s\*               | ~0.15s\*                       |
 
 \*Startup includes a polling loop with 50ms granularity, so treat these as
 "same order of magnitude," not precise. Ballerina's is JVM-backed (`bal
@@ -141,16 +149,16 @@ startup the fastest of any stack, beating even Go's static binary.
 `loadtest/run.sh`, `hey`, same machine, same DB, same fixture data (see
 `loadtest/results/`):
 
-| Stack | Endpoint | Req/s | Avg latency | p99 | Duration |
-|---|---|---|---|---|---|
-| Go | `GET /posts/{id}` | 4327 | 11.6ms | 23.6ms | 30s |
-| Go | `POST /posts` | 4034 | 2.5ms | 7.4ms | 10s |
-| Ballerina | `GET /posts/{id}` | 3479 | 14.4ms | 28.1ms | 30s |
-| Ballerina | `POST /posts` | 1546 | 2.9ms | 9.5ms | 20s |
-| Python | `GET /posts/{id}` | 1440 | 34.7ms | 44.7ms | 30s |
-| Python | `POST /posts` | 271 | 36.9ms | 45.6ms | 10s |
-| Node | `GET /posts/{id}` | 7849 | 6.4ms | 11.9ms | 30s |
-| Node | `POST /posts` | 2946 | 3.4ms | 7.4ms | 10s |
+| Stack     | Endpoint          | Req/s | Avg latency | p99    | Duration |
+| --------- | ----------------- | ----- | ----------- | ------ | -------- |
+| Go        | `GET /posts/{id}` | 4327  | 11.6ms      | 23.6ms | 30s      |
+| Go        | `POST /posts`     | 4034  | 2.5ms       | 7.4ms  | 10s      |
+| Ballerina | `GET /posts/{id}` | 3479  | 14.4ms      | 28.1ms | 30s      |
+| Ballerina | `POST /posts`     | 1546  | 2.9ms       | 9.5ms  | 20s      |
+| Python    | `GET /posts/{id}` | 1440  | 34.7ms      | 44.7ms | 30s      |
+| Python    | `POST /posts`     | 271   | 36.9ms      | 45.6ms | 10s      |
+| Node      | `GET /posts/{id}` | 7849  | 6.4ms       | 11.9ms | 30s      |
+| Node      | `POST /posts`     | 2946  | 3.4ms       | 7.4ms  | 10s      |
 
 Node comes out ahead of every other stack on the read path (`GET
 /posts/{id}`, ~1.8x Go's req/s) and second only to Go on writes. This is the
@@ -171,41 +179,51 @@ that this isn't JMH-grade rigor.
 
 ## Structured logging / config (#8, #9)
 
-All four use stdlib-adjacent logging (`log/slog` in Go, `ballerina/log` in
-Ballerina, `logging` in Python, `console.log` with a hand-rolled JSON
-envelope in Node) with structured key-value fields, and all four load config
-(`JWT_SECRET`, `DB_PATH`, `PORT`, `PROFANITY_URL`, etc.) from env vars at
-startup with no framework — `internal/config/config.go` (53 lines),
-`config.bal` (41 lines), `config.py` (44 lines), `config.js` (30 lines). No
-meaningful difference here; all four languages' standard tooling covers
-this criterion equally well. One wrinkle: Go and Ballerina parse env-var
-durations (`24h`, `2s`) via their stdlib duration parsers; neither Python's
-nor Node's stdlib has an equivalent, so both `config.py` and `config.js`
-hand-roll the same small regex-based parser to keep `.env.example`'s values
-shared verbatim across all four stacks. Node's logging is the least
-polished of the four — `console.log(JSON.stringify(...))` gets the same
-structured-field shape as the others with zero setup, but there's no actual
-logging library doing level filtering, output streams, etc., the way
-`log/slog` or Python's `logging` module do out of the box.
+|                                | Go                          | Ballerina       | Python            | Node                                      |
+| ------------------------------ | --------------------------- | --------------- | ----------------- | ----------------------------------------- |
+| Logging                        | `log/slog`                  | `ballerina/log` | stdlib `logging`  | `console.log` + hand-rolled JSON envelope |
+| Level filtering / streams      | yes (stdlib)                | yes (stdlib)    | yes (stdlib)      | no — no logging library                   |
+| Config file                    | `internal/config/config.go` | `config.bal`    | `config.py`       | `config.js`                               |
+| Config lines                   | 53                          | 41              | 44                | 30                                        |
+| Duration parsing (`24h`, `2s`) | stdlib                      | stdlib          | hand-rolled regex | hand-rolled regex                         |
+
+All four load config (`JWT_SECRET`, `DB_PATH`, `PORT`, `PROFANITY_URL`, etc.)
+from env vars at startup with no framework. No meaningful difference here;
+all four languages' standard tooling covers this criterion equally well.
+One wrinkle: Go and Ballerina parse env-var durations via their stdlib
+duration parsers; neither Python's nor Node's stdlib has an equivalent, so
+both `config.py` and `config.js` hand-roll the same small regex-based
+parser to keep `.env.example`'s values shared verbatim across all four
+stacks. Node's logging is the least polished of the four —
+`console.log(JSON.stringify(...))` gets the same structured-field shape as
+the others with zero setup, but there's no actual logging library doing
+level filtering, output streams, etc., the way `log/slog` or Python's
+`logging` module do out of the box.
 
 ## Error envelope / ownership checks (#4, #5)
 
 Identical shape enforced in all four: every error response is
 `{"error": {"code", "message"}}`, and every post/comment write endpoint
 checks the authenticated user against the resource's `author_id` before
-allowing the write, returning 403 on mismatch. Go centralizes this in
-`internal/httpx.Err`; Ballerina repeats the same record literal shape at
-each error site in `openapi_service.bal` (no shared helper); Python raises a
-small `ApiError(HTTPException)` subclass with a single exception handler
-that renders the shared envelope, plus a second handler that remaps
-FastAPI's default 422 validation-error shape into the same envelope — a
-FastAPI-specific wrinkle none of the other stacks need, since none has a
-framework-level validation layer of its own to override; Node centralizes
-error rendering in a small `sendErr` helper plus an Express error-handling
-middleware that catches malformed-JSON body-parse errors and 500s, similar
-in spirit to Go's helper but with Express's convention of a trailing
-`(err, req, res, next)` middleware rather than a plain function call at each
-error site.
+allowing the write, returning 403 on mismatch.
+
+|                 | Go                                 | Ballerina                        | Python                                        | Node                                       |
+| --------------- | ---------------------------------- | -------------------------------- | --------------------------------------------- | ------------------------------------------ |
+| Error rendering | centralized (`internal/httpx.Err`) | repeated record literal per site | `ApiError(HTTPException)` + exception handler | `sendErr` helper + error middleware        |
+| Extra wrinkle   | —                                  | no shared helper                 | remaps FastAPI's default 422 shape too        | Express `(err, req, res, next)` convention |
+
+Go centralizes error rendering in `internal/httpx.Err`; Ballerina repeats
+the same record literal shape at each error site in `openapi_service.bal`
+with no shared helper; Python raises a small `ApiError(HTTPException)`
+subclass with a single exception handler that renders the shared envelope,
+plus a second handler that remaps FastAPI's default 422 validation-error
+shape into the same envelope — a FastAPI-specific wrinkle none of the other
+stacks need, since none has a framework-level validation layer of its own
+to override; Node centralizes error rendering in a small `sendErr` helper
+plus an Express error-handling middleware that catches malformed-JSON
+body-parse errors and 500s, similar in spirit to Go's helper but with
+Express's convention of a trailing `(err, req, res, next)` middleware
+rather than a plain function call at each error site.
 
 ## Where each stack wins
 
