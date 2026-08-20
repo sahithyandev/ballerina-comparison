@@ -2,13 +2,14 @@
 
 In this repository, I am comparing the performance, code size, developer ergonomics, and behavior of Ballerina against other backend stacks. Namely:
 
-<!--TODO: convert this to a table with versions-->
-- Ballerinaa
-- Go
-- Python with FastAPI
-- Node.js with Express
-- Bun with Elysia
-- Rust axum
+| Stack      | Framework  | Version   |
+| ---------- | ---------- | --------- |
+| Ballerina  | —          | 2201.13+  |
+| Go         | —          | 1.21+     |
+| Python     | FastAPI    | 3.11+     |
+| Node.js    | Express    | 22+       |
+| Bun        | Elysia     | 1.3+      |
+| Rust       | axum       | 1.75+     |
 
 Each one is included in their own directory. Other stacks may be added in the future.
 
@@ -109,9 +110,6 @@ fan-out (see `CLAUDE.md` for how to run each). Load testing is done and the
 comparison writeup is in `RESULTS.md`. Containerization is still pending.
 
 ## Getting Started
-
-**Prerequisites**: Ballerina 2201.13+, Go 1.21+, Python 3.11+, Node 22+,
-Bun 1.3+, Rust 1.75+, `sqlite3`, Docker (optional)
 
 1. Copy the env template into every stack dir and fill in a real
    `JWT_SECRET` (required — every stack fails to start without it):

@@ -11,11 +11,11 @@ ranking.
 
 ## Lines of code
 
-|                                         | Go             | Ballerina            | Python               | Node                 | Bun                   | Rust                  |
-| --------------------------------------- | -------------- | -------------------- | -------------------- | -------------------- | ---------------------- | ---------------------- |
-| Hand-written                            | 948            | 826                  | 647                  | 546                  | 554                   | 1039                   |
-| + generated (`api.gen.go` from OpenAPI) | 2048           | — (no codegen layer) | — (no codegen layer) | — (no codegen layer) | — (no codegen layer)  | — (no codegen layer)   |
-| Tests                                   | 300 (10 tests) | 138 (7 tests)        | 173 (11 tests)       | 199 (11 tests)       | 192 (11 tests)        | 265 (11 tests)         |
+|                                         | Go             | Ballerina            | Python               | Node                 | Bun                  | Rust                 |
+| --------------------------------------- | -------------- | -------------------- | -------------------- | -------------------- | -------------------- | -------------------- |
+| Hand-written                            | 948            | 826                  | 647                  | 546                  | 554                  | 1039                 |
+| + generated (`api.gen.go` from OpenAPI) | 2048           | — (no codegen layer) | — (no codegen layer) | — (no codegen layer) | — (no codegen layer) | — (no codegen layer) |
+| Tests                                   | 300 (10 tests) | 138 (7 tests)        | 173 (11 tests)       | 199 (11 tests)       | 192 (11 tests)       | 265 (11 tests)       |
 
 Go's hand-written total looks smaller, but it leans on `oapi-codegen` to
 generate 800 lines of request/response types + routing interface from
@@ -38,7 +38,7 @@ Rust is the largest hand-written total of the six despite also having no
 codegen layer, ahead even of Go's generated-included total: `store.rs`
 hand-writes a `row_to_*` mapper per table (rusqlite has no ORM/derive layer
 the way pydantic or TypeBox do), `app.rs` hand-writes both the wire DTOs
-(`UserOut`/`PostOut`/`CommentOut`/...) *and* their `From<store::*>`
+(`UserOut`/`PostOut`/`CommentOut`/...) _and_ their `From<store::*>`
 conversions since axum has no equivalent to FastAPI's response-model
 auto-serialization, and the explicit `spawn_blocking` wrapper (`call_db`)
 around every store call adds lines none of the dynamic stacks need — the
@@ -47,15 +47,15 @@ runtime risk.
 
 ## Dependencies
 
-|                  | Go                           | Ballerina                               | Python            | Node                 | Bun                    | Rust                     |
-| ---------------- | ---------------------------- | --------------------------------------- | ----------------- | -------------------- | ---------------------- | ------------------------ |
-| Direct deps      | 7                            | 0 (+2 Java interop)                     | 6 (+1 dev-only)   | 3                    | 2 (+2 dev-only)        | 11                       |
-| Transitive deps  | 17                           | JVM classpath (jdbc driver, jbcrypt)    | —                 | —                    | ~17                    | ~180                     |
-| Router/framework | chi                          | built-in `http:Service`                 | FastAPI + uvicorn | express               | Elysia                 | axum                     |
-| JWT              | golang-jwt                   | built-in `jwt` module                   | pyjwt             | jsonwebtoken          | `@elysiajs/jwt`        | jsonwebtoken (crate)     |
-| bcrypt           | golang.org/x/crypto          | `org.mindrot:jbcrypt` (Java interop)    | bcrypt            | bcryptjs (pure JS)    | built-in `Bun.password`| bcrypt (crate)           |
-| SQLite driver    | modernc.org/sqlite (pure Go) | `org.xerial:sqlite-jdbc` (Java interop) | stdlib `sqlite3`  | stdlib `node:sqlite`  | built-in `bun:sqlite`  | rusqlite (bundled C lib) |
-| OpenAPI codegen  | kin-openapi/oapi-codegen     | —                                       | —                 | —                     | —                      | —                        |
+|                  | Go                           | Ballerina                               | Python            | Node                 | Bun                     | Rust                     |
+| ---------------- | ---------------------------- | --------------------------------------- | ----------------- | -------------------- | ----------------------- | ------------------------ |
+| Direct deps      | 7                            | 0 (+2 Java interop)                     | 6 (+1 dev-only)   | 3                    | 2 (+2 dev-only)         | 11                       |
+| Transitive deps  | 17                           | JVM classpath (jdbc driver, jbcrypt)    | —                 | —                    | ~17                     | ~180                     |
+| Router/framework | chi                          | built-in `http:Service`                 | FastAPI + uvicorn | express              | Elysia                  | axum                     |
+| JWT              | golang-jwt                   | built-in `jwt` module                   | pyjwt             | jsonwebtoken         | `@elysiajs/jwt`         | jsonwebtoken (crate)     |
+| bcrypt           | golang.org/x/crypto          | `org.mindrot:jbcrypt` (Java interop)    | bcrypt            | bcryptjs (pure JS)   | built-in `Bun.password` | bcrypt (crate)           |
+| SQLite driver    | modernc.org/sqlite (pure Go) | `org.xerial:sqlite-jdbc` (Java interop) | stdlib `sqlite3`  | stdlib `node:sqlite` | built-in `bun:sqlite`   | rusqlite (bundled C lib) |
+| OpenAPI codegen  | kin-openapi/oapi-codegen     | —                                       | —                 | —                    | —                       | —                        |
 
 **Go**: chi, golang-jwt, golang.org/x/crypto (bcrypt), golang.org/x/sync,
 modernc.org/sqlite (pure-Go, no CGO), plus kin-openapi/oapi-codegen/runtime
@@ -86,7 +86,7 @@ primitives is a problem here.
 any stack (plus `typescript` and `@types/bun`, dev-only, for the optional
 static check). SQLite and bcrypt need nothing beyond `bun:sqlite` and
 `Bun.password`, both built into the runtime with no npm package at all —
-Bun is the only stack of the five where *neither* of Ballerina's two
+Bun is the only stack of the five where _neither_ of Ballerina's two
 forced-into-Java-interop primitives requires so much as a `pip install` or
 an `npm install`, closing the gap Node still paid a (tiny, pure-JS)
 dependency for.
@@ -104,7 +104,7 @@ SQLite and bcrypt both compile straight into the binary — but "no external
 service dependency" and "small dependency count" pull in opposite
 directions for Rust: the crate ecosystem is granular (async runtime,
 HTTP client, TLS, and JSON are all separate crates other stacks bundle into
-one framework), so a comparable feature set costs more *direct* dependencies
+one framework), so a comparable feature set costs more _direct_ dependencies
 than Go, even though — like Go — nothing is a runtime/interop boundary the
 way Ballerina's Java calls are.
 
@@ -153,12 +153,12 @@ way Ballerina's Java calls are.
 
 All six fan out three lookups (author, comments, comment-authors) and join:
 
-|                               | Go                      | Ballerina                            | Python                                              | Node                                | Bun                                 | Rust                                                       |
-| ----------------------------- | ----------------------- | ------------------------------------ | --------------------------------------------------- | ------------------------------------ | ------------------------------------ | ----------------------------------------------------------- |
-| Mechanism                     | goroutines + `errgroup` | named workers (`worker fetchAuthor`) | `asyncio.gather`                                    | `Promise.all`                        | `Promise.all`                        | `tokio::join!` / `futures::future::join_all`                 |
-| Join point                    | `errgroup.Wait()`       | implicit at function return / `wait` | `await gather(...)`                                 | `await Promise.all(...)`             | `await Promise.all(...)`             | `.await` on the joined future                                |
-| DB call underneath            | pooled `*sql.DB`        | pooled JDBC connection               | sync `sqlite3` via `to_thread`                      | sync `node:sqlite` (`DatabaseSync`)  | sync `bun:sqlite` (`Database`)       | sync `rusqlite` via `spawn_blocking`, single `Connection` behind a `Mutex` |
-| Actually parallel against DB? | yes                     | yes (JVM threads)                    | no — thread-pool dispatch, serialized behind a lock | no — single JS thread, sequential    | no — single JS thread, sequential    | no — real OS threads, but serialized behind the connection mutex |
+|                               | Go                      | Ballerina                            | Python                                              | Node                                | Bun                               | Rust                                                                       |
+| ----------------------------- | ----------------------- | ------------------------------------ | --------------------------------------------------- | ----------------------------------- | --------------------------------- | -------------------------------------------------------------------------- |
+| Mechanism                     | goroutines + `errgroup` | named workers (`worker fetchAuthor`) | `asyncio.gather`                                    | `Promise.all`                       | `Promise.all`                     | `tokio::join!` / `futures::future::join_all`                               |
+| Join point                    | `errgroup.Wait()`       | implicit at function return / `wait` | `await gather(...)`                                 | `await Promise.all(...)`            | `await Promise.all(...)`          | `.await` on the joined future                                              |
+| DB call underneath            | pooled `*sql.DB`        | pooled JDBC connection               | sync `sqlite3` via `to_thread`                      | sync `node:sqlite` (`DatabaseSync`) | sync `bun:sqlite` (`Database`)    | sync `rusqlite` via `spawn_blocking`, single `Connection` behind a `Mutex` |
+| Actually parallel against DB? | yes                     | yes (JVM threads)                    | no — thread-pool dispatch, serialized behind a lock | no — single JS thread, sequential   | no — single JS thread, sequential | no — real OS threads, but serialized behind the connection mutex           |
 
 Go uses goroutines + `golang.org/x/sync/errgroup`, results collected via
 shared vars closed over by each goroutine. Ballerina's named workers read
@@ -186,7 +186,7 @@ in spirit to Go's goroutines than to Python's thread-pool dressing. But
 (the same single-writer constraint as Go's `SetMaxOpenConns(1)`, made
 explicit here since rusqlite has no pool of its own), so those threads still
 queue up one at a time to actually touch SQLite — genuinely parallel
-*dispatch*, serialized *execution*, a middle point between Go's pooled
+_dispatch_, serialized _execution_, a middle point between Go's pooled
 `*sql.DB` (also nominally capped at one connection, but real parallel query
 execution in practice per RESULTS.md's existing Go row) and Python's
 honestly-labeled thread-pool-behind-a-lock story.
@@ -204,18 +204,18 @@ three lookups in parallel against the database driver without a mutex in
 the way. Rust's version is the most verbose of all six — `call_db` plus
 explicit `Result` plumbing around every `spawn_blocking` — but it's the
 only one of the six that uses genuine OS-thread concurrency for the
-dispatch *and* is honest in code (via the `Mutex`) about where that
+dispatch _and_ is honest in code (via the `Mutex`) about where that
 concurrency stops mattering.
 
 ## Startup / build
 
 One cold `make clean && make build` run:
 
-|                                             | Go         | Ballerina | Python                | Node                           | Bun                            | Rust        |
-| ------------------------------------------- | ---------- | --------- | --------------------- | ------------------------------- | ------------------------------- | ----------- |
-| Cold build/setup time                       | 2s         | 8s        | 5s                    | <1s                             | <1s                             | 31s         |
-| Output size                                 | 17M binary | 61M jar   | 45M (venv, no binary) | 4.8M (node_modules, no binary)  | 44M (node_modules, no binary)   | 7.3M binary |
-| Process startup (to first accepted request) | ~0.3s\*    | ~1.4s\*   | ~1.6s\*               | ~0.15s\*                        | ~0.1s\*                         | ~0.05s\*    |
+|                                             | Go         | Ballerina | Python                | Node                           | Bun                           | Rust        |
+| ------------------------------------------- | ---------- | --------- | --------------------- | ------------------------------ | ----------------------------- | ----------- |
+| Cold build/setup time                       | 2s         | 8s        | 5s                    | <1s                            | <1s                           | 31s         |
+| Output size                                 | 17M binary | 61M jar   | 45M (venv, no binary) | 4.8M (node_modules, no binary) | 44M (node_modules, no binary) | 7.3M binary |
+| Process startup (to first accepted request) | ~0.3s\*    | ~1.4s\*   | ~1.6s\*               | ~0.15s\*                       | ~0.1s\*                       | ~0.05s\*    |
 
 \*Startup includes a polling loop with 50ms granularity, so treat these as
 "same order of magnitude," not precise. Ballerina's is JVM-backed (`bal
@@ -281,7 +281,7 @@ JIT plus Express's thin routing layer keep per-request overhead low — the
 same single-threaded model that made the fan-out "not really concurrent"
 above pays off here by avoiding any cross-thread coordination cost at all.
 Bun goes further still: ~1.9x Node's read-path req/s (15274 vs 7849) and
-comes within reach of Go on writes (3267 vs 4034), running the *identical*
+comes within reach of Go on writes (3267 vs 4034), running the _identical_
 fan-out code as Node over `Promise.all` and a synchronous SQLite driver.
 Since the concurrency model and the application code are unchanged between
 the two, the gap traces to what's underneath: JavaScriptCore vs V8, Bun's
@@ -326,12 +326,12 @@ disclaimer that this isn't JMH-grade rigor.
 
 ## Structured logging / config (#8, #9)
 
-|                                | Go                          | Ballerina       | Python            | Node                                      | Bun                                        | Rust                                     |
+|                                | Go                          | Ballerina       | Python            | Node                                       | Bun                                          | Rust                                       |
 | ------------------------------ | --------------------------- | --------------- | ----------------- | ------------------------------------------ | -------------------------------------------- | ------------------------------------------ |
 | Logging                        | `log/slog`                  | `ballerina/log` | stdlib `logging`  | `console.log` + hand-rolled JSON envelope  | `console.log` + hand-rolled JSON envelope    | `tracing` + `tracing-subscriber` (JSON)    |
 | Level filtering / streams      | yes (stdlib)                | yes (stdlib)    | yes (stdlib)      | no — no logging library                    | no — no logging library                      | yes (crate, ecosystem-standard not stdlib) |
 | Config file                    | `internal/config/config.go` | `config.bal`    | `config.py`       | `config.js`                                | `config.ts`                                  | `src/config.rs`                            |
-| Config lines                   | 53                          | 41              | 44                | 30                                         | 37                                            | 55                                          |
+| Config lines                   | 53                          | 41              | 44                | 30                                         | 37                                           | 55                                         |
 | Duration parsing (`24h`, `2s`) | stdlib                      | stdlib          | hand-rolled regex | hand-rolled regex                          | hand-rolled regex                            | hand-rolled (no regex crate pulled in)     |
 | `.env` loading                 | none (shell/CI provides it) | none            | none              | none — vars must already be in the process | automatic — Bun loads `.env` from cwd itself | none (shell/CI provides it)                |
 
@@ -370,10 +370,10 @@ checks the authenticated user against the resource's `author_id` before
 allowing the write, returning 403 on mismatch — with one documented
 exception in Bun, noted below.
 
-|                 | Go                                 | Ballerina                        | Python                                        | Node                                       | Bun                                                | Rust |
-| --------------- | ---------------------------------- | -------------------------------- | --------------------------------------------- | ------------------------------------------- | ---------------------------------------------------- | ---- |
-| Error rendering | centralized (`internal/httpx.Err`) | repeated record literal per site | `ApiError(HTTPException)` + exception handler | `sendErr` helper + error middleware         | centralized `onError` hook + inline `status(...)`    | centralized `AppError` + `IntoResponse` impl (`httpx.rs`) |
-| Extra wrinkle   | —                                  | no shared helper                 | remaps FastAPI's default 422 shape too        | Express `(err, req, res, next)` convention  | schema validation runs before the auth check (below) | `?`-propagated via `Result<_, AppError>` per handler |
+|                 | Go                                 | Ballerina                        | Python                                        | Node                                       | Bun                                                  | Rust                                                      |
+| --------------- | ---------------------------------- | -------------------------------- | --------------------------------------------- | ------------------------------------------ | ---------------------------------------------------- | --------------------------------------------------------- |
+| Error rendering | centralized (`internal/httpx.Err`) | repeated record literal per site | `ApiError(HTTPException)` + exception handler | `sendErr` helper + error middleware        | centralized `onError` hook + inline `status(...)`    | centralized `AppError` + `IntoResponse` impl (`httpx.rs`) |
+| Extra wrinkle   | —                                  | no shared helper                 | remaps FastAPI's default 422 shape too        | Express `(err, req, res, next)` convention | schema validation runs before the auth check (below) | `?`-propagated via `Result<_, AppError>` per handler      |
 
 Go centralizes error rendering in `internal/httpx.Err`; Ballerina repeats
 the same record literal shape at each error site in `openapi_service.bal`
@@ -392,7 +392,7 @@ exception) in one `onError` hook keyed on Elysia's `code`, closer to Go's
 single-helper story than to Python's two-handler one, while ownership and
 profanity checks call the `status(code, body)` helper inline per site, same
 shape as Go/Node's early returns. One real behavioral wrinkle: Elysia
-validates the request body against its `t.Object` schema *before* running
+validates the request body against its `t.Object` schema _before_ running
 any handler code, so a request that is both unauthenticated and carries an
 invalid body returns `400 validation_failed` from Bun instead of the
 `401 unauthorized` the other four stacks return for the same request — a
@@ -449,10 +449,10 @@ callback wiring.
 
 **Bun**: fastest stack in the load test by a wide margin on both paths —
 ~1.9x Node's read-path req/s and within reach of Go on writes — running the
-*identical* `Promise.all`-over-synchronous-SQLite fan-out code as Node, so
+_identical_ `Promise.all`-over-synchronous-SQLite fan-out code as Node, so
 the gap is attributable to JavaScriptCore + Bun's own HTTP server + Elysia's
 router rather than to any application-level difference; fewest direct
-runtime dependencies of any stack (2); the only stack where *both*
+runtime dependencies of any stack (2); the only stack where _both_
 SQLite and bcrypt are zero-install built-ins, closing the exact ecosystem
 gap that forces Ballerina to Java interop; `.env` auto-loading needs no
 flag or dependency, unlike the other four. Its cost is the same as Node's on
@@ -502,7 +502,7 @@ but swapping out just the runtime and framework underneath identical
 application code closes roughly half the remaining gap to Go — most of
 what looked like "Node's model wins" turns out to also be "V8 and Express
 cost something Bun's JavaScriptCore and Elysia don't." Rust adds a third
-data point to that same finding: even a stack with *real* multi-threaded
+data point to that same finding: even a stack with _real_ multi-threaded
 dispatch and no GC can still lose the read-path load test to a
 single-threaded one, because this particular fan-out is small enough, and
 the shared-connection mutex narrow enough, that coordination overhead
