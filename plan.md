@@ -9,6 +9,9 @@ code, ergonomics, and behavior — not benchmarks alone.
 - **Go** (net/http + stdlib, or chi) — closest "cloud-native" competitor
 - **Python** (FastAPI + uvicorn) — dynamic-typed, no-codegen reference point
 - **Node.js** (Express) — event-loop/single-threaded reference point
+- **Bun** (Elysia) — same event-loop model as Node, different runtime/router/
+  SQLite driver underneath — isolates how much of Node's numbers come from
+  V8+Express specifically vs. the single-threaded model itself
 
 ## The sample backend: a blogging platform API
 A small but recognizable domain — gives every technical checkbox below a
@@ -68,7 +71,7 @@ For each of the 11 items above, capture:
   explicitly in the writeup
 
 ## Deliverables
-- `/ballerina`, `/go`, `/python`, `/node` — one folder per stack, same blog API contract
+- `/ballerina`, `/go`, `/python`, `/node`, `/bun` — one folder per stack, same blog API contract
   (share one OpenAPI spec as the source of truth), each with its own
   `blog.db` SQLite file (or a `schema.sql` used to (re)create it)
 - `/mock-profanity-api` — one tiny stub server (any language, doesn't need to
