@@ -1,32 +1,50 @@
 {
   "go": {
-    "loc": 948,
+    "lines_of_code": 948,
     "files": 8,
-    "deps": 7
+    "deps": {
+      "direct": 7,
+      "transitive": 17
+    }
   },
   "ballerina": {
-    "loc": 688,
+    "lines_of_code": 688,
     "files": 6,
-    "deps": 2
+    "deps": {
+      "direct": 2,
+      "transitive": 34
+    }
   },
   "python": {
-    "loc": 647,
+    "lines_of_code": 647,
     "files": 6,
-    "deps": 6
+    "deps": {
+      "direct": 6,
+      "transitive": null
+    }
   },
   "node": {
-    "loc": 546,
+    "lines_of_code": 546,
     "files": 6,
-    "deps": 3
+    "deps": {
+      "direct": 3,
+      "transitive": 80
+    }
   },
   "bun": {
-    "loc": 554,
+    "lines_of_code": 554,
     "files": 6,
-    "deps": 2
+    "deps": {
+      "direct": 2,
+      "transitive": 42
+    }
   },
   "rust": {
-    "loc": 1039,
+    "lines_of_code": 1039,
     "files": 9,
-    "deps": 11
+    "deps": {
+      "direct": 11,
+      "transitive": 196
+    }
   }
 }
