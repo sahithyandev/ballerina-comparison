@@ -7,6 +7,7 @@ code, ergonomics, and behavior — not benchmarks alone.
 ## Languages / stacks to compare
 - **Ballerina** (the subject)
 - **Go** (net/http + stdlib, or chi) — closest "cloud-native" competitor
+- **Python** (FastAPI + uvicorn) — dynamic-typed, no-codegen reference point
 
 ## The sample backend: a blogging platform API
 A small but recognizable domain — gives every technical checkbox below a
@@ -66,7 +67,7 @@ For each of the 11 items above, capture:
   explicitly in the writeup
 
 ## Deliverables
-- `/ballerina`, `/go` — one folder per stack, same blog API contract
+- `/ballerina`, `/go`, `/python` — one folder per stack, same blog API contract
   (share one OpenAPI spec as the source of truth), each with its own
   `blog.db` SQLite file (or a `schema.sql` used to (re)create it)
 - `/mock-profanity-api` — one tiny stub server (any language, doesn't need to

@@ -1,7 +1,7 @@
-# Ballerina vs Go — Backend API Comparison
+# Ballerina vs Go vs Python — Backend API Comparison
 
-Build the *same* backend service in Ballerina and Go, then compare them on
-code, ergonomics, and behavior — not benchmarks alone.
+Build the *same* backend service in Ballerina, Go, and Python, then compare
+them on code, ergonomics, and behavior — not benchmarks alone.
 
 ## The Sample Backend
 
@@ -70,6 +70,7 @@ For each criterion, the writeup captures:
 ballerina-comparison/
 ├── ballerina/           # Ballerina implementation (bal openapi + java.jdbc + jwt)
 ├── go/                  # Go implementation (oapi-codegen + chi + modernc.org/sqlite)
+├── python/              # Python implementation (FastAPI + uvicorn + stdlib sqlite3)
 ├── mock-profanity-api/  # Stub server (Go, net/http, no deps)
 ├── openapi.yaml         # Shared OpenAPI spec (source of truth for both stacks)
 ├── schema.sql           # Shared SQLite schema (users/posts/comments, cascade delete)
@@ -84,39 +85,45 @@ ballerina-comparison/
 
 ## Current Status
 
-All endpoints from the table above are built and verified in both stacks:
-full post/comment CRUD, ownership checks on writes, pagination, structured
-validation errors, and the profanity check with timeout + graceful fallback
-when the stub is down. Both stacks now have a test suite covering validation,
-auth, ownership checks, and the `GET /posts/{id}` fan-out (see `CLAUDE.md`
-for how to run each). Load testing is done and the comparison writeup is in
-`RESULTS.md`. Containerization is still pending.
+All endpoints from the table above are built and verified in all three
+stacks: full post/comment CRUD, ownership checks on writes, pagination,
+structured validation errors, and the profanity check with timeout +
+graceful fallback when the stub is down. Each stack has a test suite
+covering validation, auth, ownership checks, and the `GET /posts/{id}`
+fan-out (see `CLAUDE.md` for how to run each). Load testing is done and the
+comparison writeup is in `RESULTS.md`. Containerization is still pending.
 
 ## Getting Started
 
-**Prerequisites**: Ballerina 2201.13+, Go 1.21+, `sqlite3`, Docker (optional)
+**Prerequisites**: Ballerina 2201.13+, Go 1.21+, Python 3.11+, `sqlite3`,
+Docker (optional)
 
-1. Copy the env template and fill in a real `JWT_SECRET` (required — both
-   stacks fail to start without it):
+1. Copy the env template and fill in a real `JWT_SECRET` (required — all
+   three stacks fail to start without it):
    ```bash
-   cp .env.example ballerina/.env   # or go/.env
+   cp .env.example ballerina/.env   # or go/.env, python/.env
    ```
 2. Create each stack's SQLite file from the shared schema + seed data:
    ```bash
    cd go && sqlite3 blog.db < ../schema.sql && sqlite3 blog.db < ../seed.sql
    cd ballerina && sqlite3 blog.db < ../schema.sql && sqlite3 blog.db < ../seed.sql
+   cd python && sqlite3 blog.db < ../schema.sql && sqlite3 blog.db < ../seed.sql
    ```
 3. Start the mock profanity-check server:
    ```bash
    cd mock-profanity-api && go run .
    ```
-4. Start either stack (or both, on different `PORT`s — see `.env.example`):
+4. Start any stack (or all three, on different `PORT`s — see `.env.example`):
    ```bash
    # Go
    cd go && go run .
 
    # Ballerina
    cd ballerina && bal run .
+
+   # Python
+   cd python && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+   cd python && .venv/bin/python main.py
    ```
 5. Smoke-test the vertical slice:
    ```bash

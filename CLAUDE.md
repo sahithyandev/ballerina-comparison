@@ -4,24 +4,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-A head-to-head comparison of Ballerina vs Go: the *same* blogging platform API
-(users/posts/comments, JWT auth, SQLite, profanity-check external call,
-concurrent fan-out) is implemented twice, once per stack, against one shared
-`openapi.yaml` contract and one shared `schema.sql`. The goal is a comparison
-writeup (`RESULTS.md`, not yet written), not a production service — see
-`plan.md` for the full criteria list and `README.md` for current status.
+A head-to-head comparison of Ballerina, Go, and Python: the *same* blogging
+platform API (users/posts/comments, JWT auth, SQLite, profanity-check
+external call, concurrent fan-out) is implemented three times, once per
+stack, against one shared `openapi.yaml` contract and one shared
+`schema.sql`. The goal is a comparison writeup (`RESULTS.md`), not a
+production service — see `plan.md` for the full criteria list and
+`README.md` for current status.
 
 Any change to behavior (validation rules, error envelope shape, endpoints)
-should generally be made in **both** `ballerina/` and `go/` to keep the
-comparison fair, unless the task is explicitly about one stack only.
+should generally be made in **all three** of `ballerina/`, `go/`, and
+`python/` to keep the comparison fair, unless the task is explicitly about
+one stack only.
 
 ## Commands
 
-**Run everything** (three processes, each in its own terminal):
+**Run everything** (each in its own terminal):
 ```bash
 cd mock-profanity-api && go run .        # stub server, port 9090
 cd go && go run .                        # Go API, port 8080 (or PORT from .env)
 cd ballerina && bal run .                # Ballerina API, alt port if run alongside Go
+cd python && .venv/bin/python main.py    # Python API, port 8082 (or PORT from .env)
 ```
 
 **Go**
@@ -50,6 +53,17 @@ JWT_SECRET=test-secret PORT=9099 PROFANITY_URL=http://127.0.0.1:1 bal test
 ```
 `@test:BeforeSuite` clears the users/posts/comments tables, so reruns start clean.
 
+**Python**
+```bash
+cd python && python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
+cd python && .venv/bin/python main.py   # run
+cd python && JWT_SECRET=test-secret PROFANITY_URL=http://127.0.0.1:1 .venv/bin/pytest   # test
+```
+`python/tests/test_api.py` builds a fresh temp SQLite db from `../schema.sql`
+per test (via a pytest fixture) and points `PROFANITY_URL` at nothing
+listening, same fail-open trick as the Go/Ballerina suites — no separate
+running service or scratch DB needed.
+
 **DB setup** (both stacks read/write their own `blog.db` from the same schema):
 ```bash
 sqlite3 blog.db < ../schema.sql && sqlite3 blog.db < ../seed.sql
@@ -62,9 +76,9 @@ stacks intentionally (see `.env.example`).
 ## Architecture
 
 **Shared contract, independent implementations.** `openapi.yaml` and
-`schema.sql` at the repo root are the single source of truth both stacks
-implement against; there is no shared code between `ballerina/`, `go/`, and
-`mock-profanity-api/`.
+`schema.sql` at the repo root are the single source of truth all three
+stacks implement against; there is no shared code between `ballerina/`,
+`go/`, `python/`, and `mock-profanity-api/`.
 
 **Go** (`go/`): chi router, handlers generated interface from
 `api.gen.go` implemented in `internal/handlers/handlers.go`. Layout:
@@ -87,18 +101,30 @@ implement against; there is no shared code between `ballerina/`, `go/`, and
   interop onto `org.mindrot:jbcrypt` (declared in `Ballerina.toml`). This is
   a deliberate comparison data point, not a workaround to "fix".
 
-**Both stacks implement the same behavioral contract**: consistent JSON error
+**Python** (`python/`): flat module layout, no generated code layer — mirrors
+the Go package split 1:1 rather than Ballerina's single-file style.
+- `main.py` — FastAPI app, mounted at `/api/v1`, all endpoint routes
+- `store.py` — SQLite access via stdlib `sqlite3`
+- `auth.py` — JWT issue/verify (`pyjwt`) + password hashing (`bcrypt`)
+- `profanity.py` — profanity-check client (`httpx`) with timeout + fail-open fallback
+- `models.py` — pydantic request/response models, hand-written to match `openapi.yaml`
+- `config.py` — env var config loading
+- FastAPI derives its own OpenAPI doc from `models.py`/`main.py` — the
+  contract direction is inverted from Go's spec-to-code `oapi-codegen`
+  (code-to-spec here instead), a deliberate comparison data point.
+
+**All three stacks implement the same behavioral contract**: consistent JSON error
 envelope on all error responses, ownership checks on post/comment writes,
 `GET /posts/{id}` fans out author + comments + comment-authors concurrently
-(goroutines in Go, workers in Ballerina) and joins the results, and the
-profanity check on post/comment bodies has a timeout with fail-open fallback
-if the stub is unreachable — see `README.md`'s Technical Criteria table for
-the full list.
+(goroutines in Go, workers in Ballerina, `asyncio.gather` in Python) and
+joins the results, and the profanity check on post/comment bodies has a
+timeout with fail-open fallback if the stub is unreachable — see
+`README.md`'s Technical Criteria table for the full list.
 
 **mock-profanity-api** (`mock-profanity-api/`): dependency-free `net/http`
 stub, not part of the comparison itself — supports forcing slow/failing
-responses to exercise the timeout/fallback path deterministically in both
-stacks.
+responses to exercise the timeout/fallback path deterministically in all
+three stacks.
 
 ## Commit messages
 
