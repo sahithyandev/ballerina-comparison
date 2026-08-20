@@ -1,40 +1,51 @@
-# Ballerina vs Go vs Python vs Node.js vs Bun vs Rust — Backend API Comparison
+# Ballerina vs Others (Backend API Comparison)
 
-Build the *same* backend service in Ballerina, Go, Python, Node.js, Bun
-(Elysia), and Rust (axum), then compare them on code, ergonomics, and
-behavior — not benchmarks alone.
+In this repository, I am comparing the performance, code size, developer ergonomics, and behavior of Ballerina against other backend stacks. Namely:
 
-## The Sample Backend
+<!--TODO: convert this to a table with versions-->
+- Ballerinaa
+- Go
+- Python with FastAPI
+- Node.js with Express
+- Bun with Elysia
+- Rust axum
 
-A blogging platform API with Users, Posts, and Comments. Small but
-recognizable — every technical checkbox gets a natural reason to exist.
+Each one is included in their own directory. Other stacks may be added in the future.
 
-**Domain**
+## What I Built
+
+I (with the help of Claude Code) built the same backend service in all the stacks mentioned above. A blogging platform API with Users, Posts, and Comments.
+
+Here are the common conventions used endpoints across all stacks:
+
+### Domain
+
 - `User`: id, username, email, password_hash
 - `Post`: id, author_id, title, body, published, created_at
 - `Comment`: id, post_id, author_id, body, created_at
 
-**Conventions**
+### Conventions
+
 - Base path: `/api/v1`
 - Pagination: `?page=&limit=` (1-indexed, default limit 20)
 - Passwords: bcrypt
-- JWT: HS256, secret + expiry from env vars (same values across all stacks)
+- JWT: HS256, secret + expiry from env vars
 - `DELETE /posts/{id}` cascades to comments via SQLite `ON DELETE CASCADE`
-- Profanity check: local stub server with a toggle to force slow/failing responses
+- Profanity check: local stub server (go-based) with a toggle to force slow/failing responses
 
-## Endpoints
+### Endpoints
 
-| Method | Path | Auth |
-|--------|------|------|
-| `POST` | `/auth/register` | — |
-| `POST` | `/auth/login` | — |
-| `GET` | `/posts` | — |
-| `GET` | `/posts/{id}` | — |
-| `POST` | `/posts` | JWT, author-only |
-| `PUT` | `/posts/{id}` | JWT, author-only |
-| `DELETE` | `/posts/{id}` | JWT, author-only |
-| `POST` | `/posts/{id}/comments` | JWT |
-| `GET` | `/posts/{id}/comments` | — |
+| Method   | Path                   | Auth             |
+| -------- | ---------------------- | ---------------- |
+| `POST`   | `/auth/register`       | —                |
+| `POST`   | `/auth/login`          | —                |
+| `GET`    | `/posts`               | —                |
+| `GET`    | `/posts/{id}`          | —                |
+| `POST`   | `/posts`               | JWT, author-only |
+| `PUT`    | `/posts/{id}`          | JWT, author-only |
+| `DELETE` | `/posts/{id}`          | JWT, author-only |
+| `POST`   | `/posts/{id}/comments` | JWT              |
+| `GET`    | `/posts/{id}/comments` | —                |
 
 ## Technical Criteria
 
@@ -149,7 +160,3 @@ Bun 1.3+, Rust 1.75+, `sqlite3`, Docker (optional)
 
    curl localhost:8080/api/v1/posts/1
    ```
-
-## License
-
-MIT
