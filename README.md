@@ -1,8 +1,8 @@
-# Ballerina vs Go vs Python vs Node.js vs Bun — Backend API Comparison
+# Ballerina vs Go vs Python vs Node.js vs Bun vs Rust — Backend API Comparison
 
-Build the *same* backend service in Ballerina, Go, Python, Node.js, and Bun
-(Elysia), then compare them on code, ergonomics, and behavior — not
-benchmarks alone.
+Build the *same* backend service in Ballerina, Go, Python, Node.js, Bun
+(Elysia), and Rust (axum), then compare them on code, ergonomics, and
+behavior — not benchmarks alone.
 
 ## The Sample Backend
 
@@ -46,7 +46,7 @@ All stacks are evaluated against the same checklist:
 4. **Auth** — JWT bearer auth, ownership checks on write endpoints
 5. **Error handling** — consistent error envelope, no leaking stack traces
 6. **External HTTP call** — profanity-check stub with timeout + graceful fallback
-7. **Concurrency** — fan-out on `GET /posts/{id}` (goroutines/workers/asyncio/`Promise.all` in both Node and Bun)
+7. **Concurrency** — fan-out on `GET /posts/{id}` (goroutines/workers/asyncio/`Promise.all` in both Node and Bun/tokio in Rust)
 8. **Structured logging**
 9. **Config via env vars**
 10. **Tests** — unit tests + integration test against the running service
@@ -74,6 +74,7 @@ ballerina-comparison/
 ├── python/              # Python implementation (FastAPI + uvicorn + stdlib sqlite3)
 ├── node/                # Node.js implementation (Express + stdlib node:sqlite)
 ├── bun/                 # Bun implementation (Elysia + stdlib bun:sqlite, TypeScript)
+├── rust/                # Rust implementation (axum + rusqlite + tokio)
 ├── mock-profanity-api/  # Stub server (Go, net/http, no deps)
 ├── openapi.yaml         # Shared OpenAPI spec (source of truth for every stack)
 ├── schema.sql           # Shared SQLite schema (users/posts/comments, cascade delete)
@@ -88,7 +89,7 @@ ballerina-comparison/
 
 ## Current Status
 
-All endpoints from the table above are built and verified in all five
+All endpoints from the table above are built and verified in all six
 stacks: full post/comment CRUD, ownership checks on writes, pagination,
 structured validation errors, and the profanity check with timeout +
 graceful fallback when the stub is down. Each stack has a test suite
@@ -99,12 +100,12 @@ comparison writeup is in `RESULTS.md`. Containerization is still pending.
 ## Getting Started
 
 **Prerequisites**: Ballerina 2201.13+, Go 1.21+, Python 3.11+, Node 22+,
-Bun 1.3+, `sqlite3`, Docker (optional)
+Bun 1.3+, Rust 1.75+, `sqlite3`, Docker (optional)
 
 1. Copy the env template and fill in a real `JWT_SECRET` (required — every
    stack fails to start without it):
    ```bash
-   cp .env.example ballerina/.env   # or go/.env, python/.env, node/.env, bun/.env
+   cp .env.example ballerina/.env   # or go/.env, python/.env, node/.env, bun/.env, rust/.env
    ```
 2. Create each stack's SQLite file from the shared schema + seed data:
    ```bash
@@ -113,6 +114,7 @@ Bun 1.3+, `sqlite3`, Docker (optional)
    cd python && sqlite3 blog.db < ../schema.sql && sqlite3 blog.db < ../seed.sql
    cd node && sqlite3 blog.db < ../schema.sql && sqlite3 blog.db < ../seed.sql
    cd bun && sqlite3 blog.db < ../schema.sql && sqlite3 blog.db < ../seed.sql
+   cd rust && sqlite3 blog.db < ../schema.sql && sqlite3 blog.db < ../seed.sql
    ```
 3. Start the mock profanity-check server:
    ```bash
@@ -135,6 +137,9 @@ Bun 1.3+, `sqlite3`, Docker (optional)
 
    # Bun
    cd bun && bun install && bun start
+
+   # Rust
+   cd rust && cargo run --release
    ```
 5. Smoke-test the vertical slice:
    ```bash

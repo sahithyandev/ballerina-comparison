@@ -1,9 +1,9 @@
-.PHONY: build build-go build-ballerina build-python build-node build-bun clean
+.PHONY: build build-go build-ballerina build-python build-node build-bun build-rust clean
 
 # Compile time / binary size (plan.md Comparison Metrics). Run `make clean`
 # first for a cold-build number; a plain `make build` reuses each
 # toolchain's incremental cache.
-build: build-go build-ballerina build-python build-node build-bun
+build: build-go build-ballerina build-python build-node build-bun build-rust
 
 build-go:
 	@mkdir -p go/bin
@@ -47,5 +47,12 @@ build-bun:
 	size=$$(du -sh bun/node_modules | cut -f1 | tr -d ' '); \
 	echo "bun:       $$((end-start))s, $$size (node_modules, no binary)"
 
+build-rust:
+	@start=$$(date +%s); \
+	(cd rust && cargo build --release >/dev/null); \
+	end=$$(date +%s); \
+	size=$$(du -h rust/target/release/blog-rust | cut -f1 | tr -d ' '); \
+	echo "rust:      $$((end-start))s, $$size binary"
+
 clean:
-	rm -rf go/bin ballerina/target python/.venv python/**/__pycache__ python/__pycache__ node/node_modules bun/node_modules
+	rm -rf go/bin ballerina/target python/.venv python/**/__pycache__ python/__pycache__ node/node_modules bun/node_modules rust/target
