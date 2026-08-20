@@ -8,9 +8,9 @@ A head-to-head comparison of Ballerina, Go, Python, Node.js, Bun, and Rust:
 the *same* blogging platform API (users/posts/comments, JWT auth, SQLite,
 profanity-check external call, concurrent fan-out) is implemented six
 times, once per stack, against one shared `openapi.yaml` contract and one
-shared `schema.sql`. The goal is a comparison writeup (`RESULTS.md`), not a
-production service — see `plan.md` for the full criteria list and
-`README.md` for current status.
+shared `schema.sql`. The goal is a comparison writeup (the Results section
+of `README.md`), not a production service, see `plan.md` for the full
+criteria list and `README.md` for current status.
 
 Any change to behavior (validation rules, error envelope shape, endpoints)
 should generally be made in **all six** of `ballerina/`, `go/`, `python/`,
@@ -214,8 +214,8 @@ crate rather than Go-style subpackages.
   criterion #7) uses `tokio::join!`/`futures::future::join_all` over
   `spawn_blocking` tasks — real OS threads via tokio's blocking pool, unlike
   Node/Bun's single JS thread, but the tasks still serialize behind that
-  mutex, so the DB access itself is not actually parallel; see RESULTS.md's
-  concurrency table
+  mutex, so the DB access itself is not actually parallel; see README.md's
+  Results section, concurrency table
 - No `--release` build is required to run `cargo test`, but load-test and
   build-time numbers use `cargo build --release`/`cargo run --release`, same
   as comparing Go's compiled binary rather than an unoptimized one

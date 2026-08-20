@@ -84,14 +84,14 @@ build-rust:
 	size=$$(du -h rust/target/release/blog-rust | cut -f1 | tr -d ' '); \
 	echo "rust:      $$((end-start))s, $$size binary"
 
-clean:
+clean-build:
 	rm -rf go/bin ballerina/target python/.venv python/**/__pycache__ python/__pycache__ node/node_modules bun/node_modules rust/target
 
 # Remove per-stack SQLite databases (leaves .env and installed deps alone).
 clean-db:
 	@for s in $(STACKS); do rm -f $$s/blog.db; done
 
-clean-all: clean clean-db
+clean: clean-build clean-db
 
 # Run one stack in the foreground (each needs its own terminal / `make -j` run).
 run-mock:

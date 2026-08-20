@@ -80,8 +80,9 @@ For each of the 11 items above, capture:
 - `/mock-profanity-api` — one tiny stub server (any language, doesn't need to
   match the compared stacks) with a toggle/header to force slow or failing
   responses, reused by both stacks
-- `RESULTS.md` — the actual comparison writeup: table of LOC/deps/latency +
-  narrative per criterion + an honest "where each language wins" section
+- `README.md`'s Results section — the actual comparison writeup: table of
+  LOC/deps/latency + narrative per criterion + an honest "where each
+  language wins" section
 - A load-test script (`hey` or `autocannon`) reused across both services,
   fixed scenario: `GET /posts/{id}` (the fan-out endpoint) at a fixed
   concurrency/duration (e.g. 50 concurrent for 30s), plus one write-path run
@@ -93,7 +94,7 @@ For each of the 11 items above, capture:
 3. Build Ballerina version first (it's the subject — get its idioms right)
 4. Build Go version against the same schema/spec
 5. Run identical load test script against each
-6. Fill in RESULTS.md
+6. Fill in the Results section of README.md
 
 ## Explicitly out of scope
 - Kubernetes/deployment orchestration comparison
