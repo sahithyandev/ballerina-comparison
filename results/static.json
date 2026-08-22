@@ -14,10 +14,10 @@
     }
   },
   "ballerina": {
-    "lines_of_code": 697,
+    "lines_of_code": 566,
     "test_lines": 138,
-    "generated_lines": null,
-    "files": 7,
+    "generated_lines": 131,
+    "files": 6,
     "deps": {
       "direct": 1,
       "transitive": 34,

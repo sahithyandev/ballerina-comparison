@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parent.parent
 # is_test(p) / is_generated(p): p is the file path relative to subdir.
 SOURCES = {
     "go": ("go", "*.go", lambda p: p.name.endswith("_test.go"), lambda p: p.name == "api.gen.go"),
-    "ballerina": ("ballerina", "*.bal", lambda p: "tests" in p.parts, lambda p: False),
+    "ballerina": ("ballerina", "*.bal", lambda p: "tests" in p.parts, lambda p: p.name == "types.bal"),
     "python": ("python", "*.py", lambda p: "tests" in p.parts, lambda p: False),
     "node": ("node", "*.js", lambda p: "test" in p.parts, lambda p: False),
     "bun": ("bun", "*.ts", lambda p: "test" in p.parts, lambda p: False),

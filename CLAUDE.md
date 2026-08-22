@@ -132,12 +132,14 @@ stacks implement against; there is no shared code between `ballerina/`,
 - `internal/profanity` — profanity-check client with timeout + fail-open fallback
 - `internal/config`, `internal/httpx` — env config loading, shared error-envelope response helper
 
-**Ballerina** (`ballerina/`): single-package service, no generated code layer.
+**Ballerina** (`ballerina/`): single-package service.
 - `openapi_service.bal` — the HTTP service and all endpoint resources
 - `db.bal` — SQLite access via `kanushka/sqlite` (Ballerina Central package)
 - `auth.bal` — JWT handling
 - `profanity.bal` — profanity-check client call
-- `types.bal` — request/response/record types
+- `types.bal` — request/response/record types, generated from `openapi.yaml`
+  by the `bal openapi` tool (do not hand-edit; regenerate instead when the
+  spec changes, same as Go's `api.gen.go`)
 - `config.bal` — env var config loading
 - bcrypt is unavailable natively in Ballerina (`ballerina/crypto` has no
   bcrypt, none on Central either) — `db.bal`/`auth.bal` reach it via Java
