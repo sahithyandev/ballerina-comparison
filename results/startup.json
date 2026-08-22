@@ -1,26 +1,26 @@
 {
   "go": {
-    "startup_ms": 10.1,
+    "startup_ms": 10.0,
     "poll_interval_ms": 10.0
   },
   "ballerina": {
-    "startup_ms": 822.0,
+    "startup_ms": 794.5,
     "poll_interval_ms": 10.0
   },
   "python": {
-    "startup_ms": 209.3,
+    "startup_ms": 222.0,
     "poll_interval_ms": 10.0
   },
   "node": {
-    "startup_ms": 79.4,
+    "startup_ms": 82.3,
     "poll_interval_ms": 10.0
   },
   "bun": {
-    "startup_ms": 39.4,
+    "startup_ms": 41.8,
     "poll_interval_ms": 10.0
   },
   "rust": {
-    "startup_ms": 14.2,
+    "startup_ms": 12.2,
     "poll_interval_ms": 10.0
   }
 }

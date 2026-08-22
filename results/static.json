@@ -14,14 +14,14 @@
     }
   },
   "ballerina": {
-    "lines_of_code": 566,
+    "lines_of_code": 548,
     "test_lines": 138,
     "generated_lines": 131,
     "files": 6,
     "deps": {
       "direct": 1,
       "transitive": 34,
-      "java_interop": 1
+      "java_interop": 0
     },
     "component_lines": {
       "profanity": 21,
