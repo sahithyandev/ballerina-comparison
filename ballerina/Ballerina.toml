@@ -6,11 +6,3 @@ distribution = "2201.13.5"
 
 [build-options]
 observabilityIncluded = true
-
-# ballerina/crypto has no bcrypt (only hash/hmac/AES). No bcrypt package
-# exists on Ballerina Central either — Java interop onto jBCrypt is the only
-# route to match plan.md's bcrypt requirement. A real ecosystem-gap finding.
-[[platform.java21.dependency]]
-groupId = "org.mindrot"
-artifactId = "jbcrypt"
-version = "0.4"

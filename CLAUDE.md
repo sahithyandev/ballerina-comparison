@@ -141,10 +141,8 @@ stacks implement against; there is no shared code between `ballerina/`,
   by the `bal openapi` tool (do not hand-edit; regenerate instead when the
   spec changes, same as Go's `api.gen.go`)
 - `config.bal` — env var config loading
-- bcrypt is unavailable natively in Ballerina (`ballerina/crypto` has no
-  bcrypt, none on Central either) — `db.bal`/`auth.bal` reach it via Java
-  interop onto `org.mindrot:jbcrypt` (declared in `Ballerina.toml`). This is
-  a deliberate comparison data point, not a workaround to "fix".
+- bcrypt is available natively via `ballerina/crypto`'s `hashBcrypt`/
+  `verifyBcrypt` functions (`auth.bal`)
 
 **Python** (`python/`): flat module layout, no generated code layer — mirrors
 the Go package split 1:1 rather than Ballerina's single-file style.

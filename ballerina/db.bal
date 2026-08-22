@@ -1,5 +1,4 @@
-// SQLite access via kanushka/sqlite, a native Ballerina Central connector
-// (no JDBC/Java interop needed for this data point, unlike bcrypt).
+// SQLite access via kanushka/sqlite, a native Ballerina Central connector.
 import kanushka/sqlite;
 import ballerina/sql;
 
