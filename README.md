@@ -255,6 +255,27 @@ relative terms among the JS runtimes (65M to 145M); Bun stays leaner on
 both ends. Python barely moves because its single worker never has much
 in flight.
 
+### Cold-start warm-up
+
+`startup to first request` above is time to the *first* 200. This is what
+happens right after: 600 sequential `GET /posts/1` requests from one
+client, p99 of the first 100 against the last 100 — the JIT/VM warm-up the
+steady-state load test never shows.
+
+|                   | Go  | Ballerina | Python | Node | Bun | Rust |
+| ----------------- | --- | --------- | ------ | ---- | --- | ---- |
+| First 100, p99    | 1.0 | 8.4       | 1.8    | 4.2  | 0.5 | 0.5  |
+| Last 100, p99     | 0.8 | 4.9       | 1.4    | 0.7  | 0.3 | 0.4  |
+
+(milliseconds; `results/warmup.json` via `make warmup-stats`. Directional,
+single run.)
+
+The two runtimes with a JIT show it. Ballerina's first-100 p99 is 8.4ms,
+settling to 4.9ms once HotSpot has compiled the hot path. Node drops from
+4.2ms to 0.7ms as V8 tiers up. Go, Rust, and Python start at roughly their
+steady-state numbers — nothing to warm up — and Bun's JSC is already fast
+by request one here.
+
 ### Load test
 
 I ran these with `loadtest/run.sh` and `hey`, same machine, same DB, same

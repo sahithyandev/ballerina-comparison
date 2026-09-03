@@ -3,7 +3,7 @@ STACKS := go ballerina python node bun rust
 .PHONY: build build-go build-ballerina build-python build-node build-bun build-rust clean clean-db clean-all \
 	env db test test-go test-ballerina test-python test-node test-bun test-rust \
 	run-go run-ballerina run-python run-node run-bun run-rust run-mock check static build-stats \
-	loadtest-stats startup-stats memory-stats stats
+	loadtest-stats startup-stats memory-stats warmup-stats stats
 
 # Verify the toolchains each stack needs are on PATH, with versions.
 check:
@@ -152,5 +152,11 @@ startup-stats:
 memory-stats:
 	@python3 scripts/memory_compare.py
 
+# Cold-start warm-up: p99/avg of the first 100 sequential requests vs the
+# last 100, right after the first 200 — writes results/warmup.json. Same
+# preconditions as startup-stats.
+warmup-stats:
+	@python3 scripts/warmup_compare.py
+
 # Everything behind the README's Results section, in one shot.
-stats: static build-stats loadtest-stats startup-stats memory-stats
+stats: static build-stats loadtest-stats startup-stats memory-stats warmup-stats
