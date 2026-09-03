@@ -1,34 +1,34 @@
 {
   "go": {
-    "build_seconds": 1.49,
+    "build_seconds": 4.63,
     "output_bytes": 17477170,
     "cold": true
   },
   "ballerina": {
-    "build_seconds": 6.24,
-    "output_bytes": 64048959,
+    "build_seconds": 7.79,
+    "output_bytes": 64210280,
     "cold": true
   },
   "python": {
-    "build_seconds": 5.14,
-    "output_bytes": 41566112,
+    "build_seconds": 8.19,
+    "output_bytes": 41673822,
     "cold": true,
     "note": "venv, no binary"
   },
   "node": {
-    "build_seconds": 0.37,
+    "build_seconds": 0.6,
     "output_bytes": 2824222,
     "cold": true,
     "note": "node_modules, no binary"
   },
   "bun": {
-    "build_seconds": 0.12,
+    "build_seconds": 0.06,
     "output_bytes": 39296415,
     "cold": true,
     "note": "node_modules, no binary"
   },
   "rust": {
-    "build_seconds": 42.03,
+    "build_seconds": 32.02,
     "output_bytes": 7703600,
     "cold": true
   }
