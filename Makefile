@@ -3,7 +3,7 @@ STACKS := go ballerina python node bun rust
 .PHONY: build build-go build-ballerina build-python build-node build-bun build-rust clean clean-db clean-all \
 	env db test test-go test-ballerina test-python test-node test-bun test-rust \
 	run-go run-ballerina run-python run-node run-bun run-rust run-mock check static build-stats \
-	loadtest-stats startup-stats memory-stats warmup-stats stats
+	loadtest-stats startup-stats memory-stats warmup-stats failopen-stats stats
 
 # Verify the toolchains each stack needs are on PATH, with versions.
 check:
@@ -158,5 +158,11 @@ memory-stats:
 warmup-stats:
 	@python3 scripts/warmup_compare.py
 
+# POST /posts p99/throughput with the profanity stub healthy, then stalled
+# past the timeout so every write hits the fail-open path (plan.md #6) —
+# writes results/failopen.json. Starts the stub itself; needs `hey` + Go.
+failopen-stats:
+	@python3 scripts/failopen_compare.py
+
 # Everything behind the README's Results section, in one shot.
-stats: static build-stats loadtest-stats startup-stats memory-stats warmup-stats
+stats: static build-stats loadtest-stats startup-stats memory-stats warmup-stats failopen-stats

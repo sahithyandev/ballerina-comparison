@@ -343,6 +343,32 @@ And it doesn't obviously pay off either way. The two stacks with genuine
 parallel execution, Go and Ballerina, get outrun on this exact route by
 Node's and Bun's single-threaded, lock-free version.
 
+### Fail-open under load
+
+All six check a new post's body against the profanity stub with a 2s
+timeout and fall open (allow the write) if the stub is slow or down. This
+runs `POST /posts` at 10 concurrent for 8s with the stub healthy, then
+again with it forced to stall 5s so every write trips the timeout.
+
+| Stack     | Healthy req/s | Stalled req/s | Stalled avg latency | 5xx |
+| --------- | ------------- | ------------- | ------------------- | --- |
+| Go        | 4004          | 5.0           | 2010ms              | 0   |
+| Ballerina | 2433          | 5.1           | 1970ms              | 0   |
+| Python    | 275           | 4.9           | 2054ms              | 0   |
+| Node      | 2923          | 5.0           | 2011ms              | 0   |
+| Bun       | 3968          | 5.0           | 2010ms              | 0   |
+| Rust      | 4594          | 5.0           | 2006ms              | 0   |
+
+(`results/failopen.json` via `make failopen-stats`. Directional, single run.)
+
+The fallback works everywhere: every write still returns 201, no stack
+leaks a 5xx when the dependency stalls. But the fallback fires *per
+request* — nothing caches or short-circuits a known-bad upstream — so
+every write pays the full 2s timeout, and throughput on that route
+collapses to `concurrency / timeout` (~5 req/s) until the stub recovers.
+Correct, bounded, and still a hard throttle. Identical across all six
+because it's the same timeout doing the same job.
+
 ### Where each one earns its keep
 
 **Go** is the fastest and cheapest to build. Native SQLite and bcrypt, no
