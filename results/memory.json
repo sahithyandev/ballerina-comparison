@@ -1,0 +1,26 @@
+{
+  "go": {
+    "idle_rss_mb": 21.8,
+    "under_load_rss_mb": 33.9
+  },
+  "ballerina": {
+    "idle_rss_mb": 186.0,
+    "under_load_rss_mb": 882.3
+  },
+  "python": {
+    "idle_rss_mb": 62.9,
+    "under_load_rss_mb": 72.7
+  },
+  "node": {
+    "idle_rss_mb": 64.6,
+    "under_load_rss_mb": 144.9
+  },
+  "bun": {
+    "idle_rss_mb": 48.3,
+    "under_load_rss_mb": 96.0
+  },
+  "rust": {
+    "idle_rss_mb": 11.1,
+    "under_load_rss_mb": 20.2
+  }
+}

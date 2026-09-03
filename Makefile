@@ -3,7 +3,7 @@ STACKS := go ballerina python node bun rust
 .PHONY: build build-go build-ballerina build-python build-node build-bun build-rust clean clean-db clean-all \
 	env db test test-go test-ballerina test-python test-node test-bun test-rust \
 	run-go run-ballerina run-python run-node run-bun run-rust run-mock check static build-stats \
-	loadtest-stats startup-stats stats
+	loadtest-stats startup-stats memory-stats stats
 
 # Verify the toolchains each stack needs are on PATH, with versions.
 check:
@@ -147,5 +147,10 @@ loadtest-stats:
 startup-stats:
 	@python3 scripts/startup_compare.py
 
+# Idle + under-load RSS per stack — writes results/memory.json. Same
+# preconditions as startup-stats (`make setup` + `make build`). Needs `hey`.
+memory-stats:
+	@python3 scripts/memory_compare.py
+
 # Everything behind the README's Results section, in one shot.
-stats: static build-stats loadtest-stats startup-stats
+stats: static build-stats loadtest-stats startup-stats memory-stats

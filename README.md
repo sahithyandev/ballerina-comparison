@@ -233,6 +233,28 @@ because `bal run` boots a JVM. That JVM cost is the real tradeoff for
 choosing Ballerina now, not a dependency gap. SQLite and bcrypt are both
 native as of the latest commit.
 
+### Memory
+
+Resident set size (RSS) of the server process, sampled once idle just
+after startup, then again as its peak during a 10s / 50-concurrent `hey`
+burst on `GET /posts/1`.
+
+|                | Go   | Ballerina | Python | Node   | Bun   | Rust |
+| -------------- | ---- | --------- | ------ | ------ | ----- | ---- |
+| Idle RSS       | 22M  | 186M      | 63M    | 65M    | 48M   | 11M  |
+| Under-load RSS | 34M  | 882M      | 73M    | 145M   | 96M   | 20M  |
+
+(`results/memory.json` via `make memory-stats`. Main process only; none of
+the six forks workers for this workload. Directional, single run.)
+
+Rust and Go are the tightest, 11–22M idle and barely moving under load.
+Ballerina is in a different weight class: a 186M idle JVM that balloons
+past 880M under load, 25x Rust's peak, as the JVM trades memory for
+throughput it doesn't get to use here. Node's heap grows the most in
+relative terms among the JS runtimes (65M to 145M); Bun stays leaner on
+both ends. Python barely moves because its single worker never has much
+in flight.
+
 ### Load test
 
 I ran these with `loadtest/run.sh` and `hey`, same machine, same DB, same
