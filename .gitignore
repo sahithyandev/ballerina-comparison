@@ -9,4 +9,6 @@ python/.pytest_cache/
 node/node_modules/
 bun/node_modules/
 rust/target/
+java/build/
+java/.gradle/
 scripts/__pycache__/
