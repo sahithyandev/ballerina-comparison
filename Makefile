@@ -1,14 +1,14 @@
-STACKS := go ballerina python node bun rust
+STACKS := go ballerina python node bun rust java
 
-.PHONY: build build-go build-ballerina build-python build-node build-bun build-rust clean clean-db clean-all \
-	env db test test-go test-ballerina test-python test-node test-bun test-rust \
-	run-go run-ballerina run-python run-node run-bun run-rust run-mock check static build-stats \
+.PHONY: build build-go build-ballerina build-python build-node build-bun build-rust build-java clean clean-db clean-all \
+	env db test test-go test-ballerina test-python test-node test-bun test-rust test-java \
+	run-go run-ballerina run-python run-node run-bun run-rust run-java run-mock check static build-stats \
 	loadtest-stats startup-stats memory-stats warmup-stats failopen-stats stats
 
 # Verify the toolchains each stack needs are on PATH, with versions.
 check:
 	@ok=1; \
-	for c in go bal python3 node bun cargo sqlite3; do \
+	for c in go bal python3 node bun cargo java sqlite3; do \
 		if ! command -v $$c >/dev/null 2>&1; then echo "$$c: MISSING"; ok=0; continue; fi; \
 		if [ "$$c" = go ]; then v=$$(go version); else v=$$($$c --version 2>&1 | head -1); fi; \
 		echo "$$c: $$v"; \
@@ -34,7 +34,7 @@ db:
 # Compile time / binary size (plan.md Comparison Metrics). Run `make clean`
 # first for a cold-build number; a plain `make build` reuses each
 # toolchain's incremental cache.
-build: build-go build-ballerina build-python build-node build-bun build-rust
+build: build-go build-ballerina build-python build-node build-bun build-rust build-java
 
 build-go:
 	@mkdir -p go/bin
@@ -85,8 +85,15 @@ build-rust:
 	size=$$(du -h rust/target/release/blog-rust | cut -f1 | tr -d ' '); \
 	echo "rust:      $$((end-start))s, $$size binary"
 
+build-java:
+	@start=$$(date +%s); \
+	(cd java && ./gradlew -q --console=plain shadowJar); \
+	end=$$(date +%s); \
+	size=$$(du -h java/build/libs/blog-java-all.jar | cut -f1 | tr -d ' '); \
+	echo "java:      $$((end-start))s, $$size jar"
+
 clean-build:
-	rm -rf go/bin ballerina/target python/.venv python/**/__pycache__ python/__pycache__ node/node_modules bun/node_modules rust/target
+	rm -rf go/bin ballerina/target python/.venv python/**/__pycache__ python/__pycache__ node/node_modules bun/node_modules rust/target java/build java/.gradle
 
 # Remove per-stack SQLite databases (leaves .env and installed deps alone).
 clean-db:
@@ -109,9 +116,11 @@ run-bun:
 	cd bun && bun server.ts
 run-rust:
 	cd rust && cargo run --release
+run-java:
+	cd java && ./gradlew -q --console=plain run
 
 # Run each stack's test suite, same fail-open env vars as CLAUDE.md documents.
-test: test-go test-ballerina test-python test-node test-bun test-rust
+test: test-go test-ballerina test-python test-node test-bun test-rust test-java
 
 test-go:
 	cd go && go test ./...
@@ -126,6 +135,8 @@ test-bun:
 	cd bun && JWT_SECRET=test-secret PROFANITY_URL=http://127.0.0.1:1 bun test
 test-rust:
 	cd rust && cargo test
+test-java:
+	cd java && ./gradlew -q --console=plain test
 
 # Static comparison (LOC/deps, not runtime) — writes results/static.json.
 static:
