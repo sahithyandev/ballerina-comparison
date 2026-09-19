@@ -115,7 +115,9 @@ timeout and graceful fallback when the stub is down. Each stack has a test
 suite covering validation, auth, ownership checks, and the `GET
 /posts/{id}` fan-out (see `CLAUDE.md` for how to run each). Load testing is
 done, and the comparison writeup is below, in [Results](#results).
-Containerization is still pending.
+Containerization (a Dockerfile per stack) is out of scope for this
+comparison: it's not needed to evaluate code, ergonomics, or performance,
+and isn't covered in the Results below.
 
 ## Getting Started
 

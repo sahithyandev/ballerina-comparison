@@ -64,6 +64,7 @@ natural reason to exist instead of feeling bolted on.
 10. **Tests** — unit test for validation logic, one integration test hitting
     the running service
 11. **Containerization** — a Dockerfile for each stack, same base pattern
+    (dropped, out of scope, see README's Current Status)
 
 ## What "comparison" means concretely
 For each of the 11 items above, capture:
