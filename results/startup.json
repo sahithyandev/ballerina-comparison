@@ -22,5 +22,9 @@
   "rust": {
     "startup_ms": 537.9,
     "poll_interval_ms": 10.0
+  },
+  "java": {
+    "startup_ms": 680.0,
+    "poll_interval_ms": 10.0
   }
 }

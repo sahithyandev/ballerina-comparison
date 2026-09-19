@@ -64,5 +64,16 @@
       "p99_ms": 0.4
     },
     "n_requests": 600
+  },
+  "java": {
+    "first_100": {
+      "avg_ms": 0.8,
+      "p99_ms": 0.9
+    },
+    "last_100": {
+      "avg_ms": 0.6,
+      "p99_ms": 0.7
+    },
+    "n_requests": 600
   }
 }

@@ -31,5 +31,10 @@
     "build_seconds": 32.02,
     "output_bytes": 7703600,
     "cold": true
+  },
+  "java": {
+    "build_seconds": 2.35,
+    "output_bytes": 24107472,
+    "cold": true
   }
 }

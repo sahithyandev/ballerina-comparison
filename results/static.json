@@ -86,5 +86,20 @@
       "profanity": 63,
       "config": 55
     }
+  },
+  "java": {
+    "lines_of_code": 867,
+    "test_lines": 202,
+    "generated_lines": 558,
+    "files": 8,
+    "deps": {
+      "direct": 8,
+      "transitive": null,
+      "dev": 2
+    },
+    "component_lines": {
+      "profanity": 55,
+      "config": 51
+    }
   }
 }

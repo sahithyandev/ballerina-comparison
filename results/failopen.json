@@ -118,5 +118,25 @@
         "201": 40
       }
     }
+  },
+  "java": {
+    "profanity_normal": {
+      "rps": 3030.6,
+      "avg_ms": 3.3,
+      "p99_ms": 7.0,
+      "tail_ms": 13.0,
+      "statuses": {
+        "201": 24253
+      }
+    },
+    "profanity_stalled": {
+      "rps": 5.0,
+      "avg_ms": 2016.0,
+      "p99_ms": null,
+      "tail_ms": 2035.8,
+      "statuses": {
+        "201": 40
+      }
+    }
   }
 }

@@ -22,5 +22,9 @@
   "rust": {
     "idle_rss_mb": 11.0,
     "under_load_rss_mb": 19.6
+  },
+  "java": {
+    "idle_rss_mb": 124.1,
+    "under_load_rss_mb": 410.8
   }
 }
