@@ -13,7 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 RESULTS_DIR = ROOT / "loadtest/results"
 
-STACKS = ["go", "ballerina", "python", "node", "bun", "rust"]
+STACKS = ["go", "ballerina", "python", "node", "bun", "rust", "java"]
 ENDPOINTS = {"get": "GET /posts/{id}", "post": "POST /posts"}
 
 

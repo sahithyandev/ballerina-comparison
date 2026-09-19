@@ -17,13 +17,14 @@ SOURCES = {
     "node": ("node", "*.js", lambda p: "test" in p.parts, lambda p: False),
     "bun": ("bun", "*.ts", lambda p: "test" in p.parts, lambda p: False),
     "rust": ("rust/src", "*.rs", lambda p: False, lambda p: False),
+    "java": ("java/src", "*.java", lambda p: "test" in p.parts, lambda p: "gen" in p.parts),
 }
 # rust's test suite lives in rust/tests, a sibling of rust/src, so it isn't
 # reachable via SOURCES' single subdir. Handled as a special case in loc().
 RUST_TESTS_DIR = "rust/tests"
 
 # Dependency/build-artifact dirs to skip when walking a stack's source tree.
-SKIP_DIRS = {"node_modules", ".venv", "target", "bin"}
+SKIP_DIRS = {"node_modules", ".venv", "target", "bin", "build", ".gradle"}
 
 # Files quoted individually in the README's prose per stack.
 COMPONENT_FILES = {
@@ -33,6 +34,7 @@ COMPONENT_FILES = {
     "node": {"profanity": "node/profanity.js", "config": "node/config.js"},
     "bun": {"profanity": "bun/profanity.ts", "config": "bun/config.ts"},
     "rust": {"profanity": "rust/src/profanity.rs", "config": "rust/src/config.rs"},
+    "java": {"profanity": "java/src/main/java/blog/Profanity.java", "config": "java/src/main/java/blog/Config.java"},
 }
 
 
@@ -134,6 +136,17 @@ def rust_deps():
     return direct, total - direct - 1, None  # -1 for the crate itself
 
 
+def java_deps():
+    # Direct = implementation() lines in build.gradle.kts; dev = test deps.
+    # No lock file committed (Gradle doesn't lock by default), so transitive
+    # count stays n/a, same as Python.
+    text = (ROOT / "java/build.gradle.kts").read_text()
+    block = re.search(r"dependencies \{(.*?)\n\}", text, re.S).group(1)
+    direct = len(re.findall(r"^\s*implementation\(", block, re.M))
+    dev = len(re.findall(r"^\s*test\w+\(", block, re.M))
+    return direct, None, dev
+
+
 DEPS = {
     "go": go_deps,
     "ballerina": ballerina_deps,
@@ -141,6 +154,7 @@ DEPS = {
     "node": node_deps,
     "bun": bun_deps,
     "rust": rust_deps,
+    "java": java_deps,
 }
 # name of the deps() 3rd return value, per stack (differs in kind, not just value).
 DEPS_EXTRA_LABEL = {
@@ -150,6 +164,7 @@ DEPS_EXTRA_LABEL = {
     "node": "dev",
     "bun": "dev",
     "rust": None,
+    "java": "dev",
 }
 
 

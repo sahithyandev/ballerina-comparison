@@ -55,6 +55,14 @@ BUILDS = {
         "target",
         None,
     ),
+    "java": (
+        "java",
+        ["./gradlew", "-q", "--console=plain", "shadowJar"],
+        "build/libs/blog-java-all.jar",
+        False,
+        "build",
+        None,
+    ),
 }
 
 

@@ -27,6 +27,7 @@ STACKS = {
     "node": ("node", 8083, ["node", "server.js"], "node_modules"),
     "bun": ("bun", 8084, ["bun", "server.ts"], "node_modules"),
     "rust": ("rust", 8085, ["./target/release/blog-rust"], "target/release/blog-rust"),
+    "java": ("java", 8086, ["java", "-jar", "build/libs/blog-java-all.jar"], "build/libs/blog-java-all.jar"),
 }
 
 
