@@ -15,6 +15,9 @@ code, ergonomics, and behavior — not benchmarks alone.
 - **Rust** (axum) — statically compiled, no GC, real OS-thread concurrency
   via tokio; a second data point (alongside Go) on what a memory-safe
   systems language costs/buys versus the four dynamic/JIT'd runtimes above
+- **Java** (Javalin) — the default enterprise JVM stack, minimal-framework
+  (embedded Jetty, no DI container) so the comparison measures the language
+  and runtime rather than a framework; fan-out on virtual threads (Java 21+)
 
 ## The sample backend: a blogging platform API
 A small but recognizable domain — gives every technical checkbox below a
@@ -74,7 +77,7 @@ For each of the 11 items above, capture:
   explicitly in the writeup
 
 ## Deliverables
-- `/ballerina`, `/go`, `/python`, `/node`, `/bun`, `/rust` — one folder per stack, same blog API contract
+- `/ballerina`, `/go`, `/python`, `/node`, `/bun`, `/rust`, `/java` — one folder per stack, same blog API contract
   (share one OpenAPI spec as the source of truth), each with its own
   `blog.db` SQLite file (or a `schema.sql` used to (re)create it)
 - `/mock-profanity-api` — one tiny stub server (any language, doesn't need to

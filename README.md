@@ -1,6 +1,6 @@
 # Ballerina vs Others (Backend API Comparison)
 
-In this repository, I'm comparing the performance, code size, developer ergonomics, and behavior of Ballerina against five other backend stacks.
+In this repository, I'm comparing the performance, code size, developer ergonomics, and behavior of Ballerina against six other backend stacks.
 
 | Stack     | Framework | Version  |
 | --------- | --------- | -------- |
@@ -10,6 +10,7 @@ In this repository, I'm comparing the performance, code size, developer ergonomi
 | Node.js   | Express   | 22+      |
 | Bun       | Elysia    | 1.3+     |
 | Rust      | axum      | 1.75+    |
+| Java      | Javalin   | 21+      |
 
 Each one is included in their own directory. Other stacks may be added in the future. Run `make check` to verify the toolchains each stack needs are on PATH.
 
@@ -17,7 +18,7 @@ Each one is included in their own directory. Other stacks may be added in the fu
 
 I (with the help of Claude Code) built the same backend service in all the stacks mentioned above. A blogging platform API with Users, Posts, and Comments.
 
-Here are the common conventions used across all six.
+Here are the common conventions used across all seven.
 
 ### Domain
 
@@ -64,7 +65,7 @@ All stacks are evaluated against the same checklist:
 4. **Auth**, JWT bearer auth, ownership checks on write endpoints
 5. **Error handling**, consistent error envelope, no leaking stack traces
 6. **External HTTP call**, profanity-check stub with timeout and graceful fallback
-7. **Concurrency**, fan-out on `GET /posts/{id}` (goroutines/workers/asyncio/`Promise.all` in both Node and Bun/tokio in Rust)
+7. **Concurrency**, fan-out on `GET /posts/{id}` (goroutines/workers/asyncio/`Promise.all` in both Node and Bun/tokio in Rust/virtual threads in Java)
 8. **Structured logging**
 9. **Config via env vars**
 10. **Tests**, unit tests plus an integration test against the running service
@@ -92,6 +93,7 @@ ballerina-comparison/
 ├── node/                # Node.js implementation (Express + stdlib node:sqlite)
 ├── bun/                 # Bun implementation (Elysia + stdlib bun:sqlite, TypeScript)
 ├── rust/                # Rust implementation (axum + rusqlite + tokio)
+├── java/                # Java implementation (Javalin + sqlite-jdbc + virtual threads)
 ├── mock-profanity-api/  # Stub server (Go, net/http, no deps)
 ├── openapi.yaml         # Shared OpenAPI spec (source of truth for every stack)
 ├── schema.sql           # Shared SQLite schema (users/posts/comments, cascade delete)
@@ -106,7 +108,7 @@ The comparison writeup lives in the [Results](#results) section below. See `plan
 
 ## Current Status
 
-All endpoints from the table above are built and verified in all six
+All endpoints from the table above are built and verified in all seven
 stacks. That's full post/comment CRUD, ownership checks on writes,
 pagination, structured validation errors, and the profanity check with
 timeout and graceful fallback when the stub is down. Each stack has a test
@@ -118,18 +120,22 @@ Containerization is still pending.
 ## Getting Started
 
 1. Run `make setup` to copy the env template and create the SQLite file.
-2. Install each stack's dependencies (Python venv, npm/bun installs):
+2. Install each stack's dependencies (Python venv, npm/bun installs, Gradle
+   deps):
    ```bash
    make build
    ```
+   The Java stack ships a Gradle wrapper, so this needs no system Gradle. If
+   the wrapper is ever missing, recreate it once with `brew install gradle &&
+   (cd java && gradle wrapper)`.
 3. Start the mock profanity-check server:
    ```bash
    make run-mock
    ```
-4. Start any stack (or all six, on different `PORT`s, see `.env.example`),
+4. Start any stack (or all seven, on different `PORT`s, see `.env.example`),
    each in its own terminal:
    ```bash
-   make run-go          # or run-ballerina, run-python, run-node, run-bun, run-rust
+   make run-go          # or run-ballerina, run-python, run-node, run-bun, run-rust, run-java
    ```
 5. Smoke-test the vertical slice:
    ```bash
@@ -159,48 +165,60 @@ build, all last place, and it has no compile-time checking either. Node
 has the smallest codebase. Rust has the largest, but also the strongest
 compile-time guarantees.
 
-Ballerina writes the least code per endpoint of the six. It used to have
+Ballerina writes the least code per endpoint of the seven. It used to have
 two ecosystem gaps in this comparison, now it's down to one. SQLite access
 still goes through a JDBC wrapper, but bcrypt is native now, via
 `ballerina/crypto`, so it needs Java interop for nothing anymore. The
-tradeoff is JVM startup time (795ms against Go's 10ms) and the lowest
-read-path throughput of the six.
+tradeoff is JVM startup time (795ms, slowest of the seven, worse than even
+Java's 680ms) and the lowest read-path throughput of the compiled stacks.
+
+Java lands in the middle of almost every table. Read throughput between
+Ballerina and Rust, write throughput mid-pack, a codebase smaller than Go's
+or Rust's. Its two costs are the familiar JVM ones: ~120M idle memory (second
+only to Ballerina) and a ~680ms cold start. The upside the other JVM stack
+doesn't get: SQLite and bcrypt are ordinary libraries, not Java interop, and
+the fan-out is plain virtual-thread code.
 
 If code size and dependency count matter to you, look at Node or
 Ballerina. If speed is what you care about, Bun wins, no contest.
 
 ### Lines of code
 
-|                        | Go  | Ballerina | Python | Node | Bun  | Rust |
-| ---------------------- | --- | --------- | ------ | ---- | ---- | ---- |
-| Hand-written           | 948 | 548       | 647    | 546  | 554  | 1039 |
-| Generated from OpenAPI | 800 | 131       | none   | none | none | none |
-| Tests                  | 300 | 138       | 173    | 199  | 192  | 265  |
+|                        | Go  | Ballerina | Python | Node | Bun  | Rust | Java |
+| ---------------------- | --- | --------- | ------ | ---- | ---- | ---- | ---- |
+| Hand-written           | 948 | 548       | 647    | 546  | 554  | 1039 | 867  |
+| Generated from OpenAPI | 800 | 131       | none   | none | none | none | 558  |
+| Tests                  | 300 | 138       | 173    | 199  | 192  | 265  | 202  |
 
 (From `results/static.json`, via `make static`.)
 
-Node is the smallest hand-written stack. Rust is the largest. Go and
-Ballerina both generate part of their types from `openapi.yaml`, though
-not the same amount. Go's `oapi-codegen` also builds a routing interface,
-which is where its 800 generated lines come from. Ballerina's
+Node is the smallest hand-written stack. Rust is the largest. Go,
+Ballerina, and Java all generate part of their types from `openapi.yaml`,
+though not the same amount. Go's `oapi-codegen` also builds a routing
+interface, which is where its 800 generated lines come from. Ballerina's
 `bal openapi` only generates the request/response record types, 131
-lines. Rust's bigger total comes from hand-writing SQLite row-mappers and
-DTO conversions, work that pydantic, TypeBox, and the generated
-Go/Ballerina types just do for you.
+lines. Java generates just the 5 request DTOs it binds (`openapi-generator`,
+`jaxrs-spec` models), 558 lines of verbose POJOs with `equals`/`hashCode`/
+`toString`. Rust's bigger hand-written total comes from SQLite row-mappers
+and DTO conversions, work that pydantic, TypeBox, and the generated
+Go/Ballerina/Java types just do for you.
 
 ### Dependencies
 
-|                 | Go  | Ballerina | Python     | Node | Bun        | Rust |
-| --------------- | --- | --------- | ---------- | ---- | ---------- | ---- |
-| Direct deps     | 7   | 1         | 6 (+1 dev) | 3    | 2 (+2 dev) | 11   |
-| Transitive deps | 17  | 34        | n/a        | 80   | 42         | 196  |
+|                 | Go  | Ballerina | Python     | Node | Bun        | Rust | Java       |
+| --------------- | --- | --------- | ---------- | ---- | ---------- | ---- | ---------- |
+| Direct deps     | 7   | 1         | 6 (+1 dev) | 3    | 2 (+2 dev) | 11   | 8 (+2 dev) |
+| Transitive deps | 17  | 34        | n/a        | 80   | 42         | 196  | n/a        |
 
 (From `results/static.json`, via `make static`. Ballerina's transitive
 count is `ballerina/*` stdlib packages pulled in by Central, not a JVM
-classpath dump. Python has no committed lock file, so its transitive count
-stays n/a.)
+classpath dump. Python and Java have no committed lock file, so their
+transitive counts stay n/a.)
 
-Ballerina and Bun need the fewest direct dependencies, one and two.
+Ballerina and Bun need the fewest direct dependencies, one and two. Java's
+8 (Javalin, Jackson, sqlite-jdbc, java-jwt, bcrypt, logback + encoder,
+jakarta-annotation) is more than Go's 7 but the external HTTP call is
+stdlib (`java.net.http`), where Rust and Python each pull a client library.
 SQLite and bcrypt are built-ins for both of them now, Ballerina via
 `ballerina/crypto` and the `kanushka/sqlite` Central package, Bun via
 `bun:sqlite` and `Bun.password`. Rust needs the most, 11 direct and 196
@@ -209,15 +227,21 @@ crates that other frameworks just bundle for you.
 
 ### Build and startup
 
-|                          | Go           | Ballerina | Python     | Node              | Bun                | Rust        |
-| ------------------------ | ------------ | --------- | ---------- | ----------------- | ------------------ | ----------- |
-| Cold build/setup time    | 1.5s         | 6.2s      | 5.1s       | 0.4s              | 0.1s               | 42.0s       |
-| Output size              | 17.5M binary | 64.0M jar | 41.6M venv | 2.8M node_modules | 39.3M node_modules | 7.7M binary |
-| Startup to first request | 10ms\*       | 795ms\*   | 222ms\*    | 82ms\*            | 42ms\*             | 12ms\*      |
+|                          | Go           | Ballerina | Python     | Node              | Bun                | Rust        | Java        |
+| ------------------------ | ------------ | --------- | ---------- | ----------------- | ------------------ | ----------- | ----------- |
+| Cold build/setup time    | 1.5s         | 6.2s      | 5.1s       | 0.4s              | 0.1s               | 42.0s       | 2.4s        |
+| Output size              | 17.5M binary | 64.0M jar | 41.6M venv | 2.8M node_modules | 39.3M node_modules | 7.7M binary | 24.1M jar   |
+| Startup to first request | 10ms\*       | 795ms\*   | 222ms\*    | 82ms\*            | 42ms\*             | 12ms\*      | 680ms\*†    |
 
 (`results/build.json` via `make build-stats`, `results/startup.json` via
 `make startup-stats`. Build times delete each stack's build cache first, so
-they're cold; toolchain package/registry caches stay warm.)
+they're cold; toolchain package/registry caches stay warm. Java's build
+number keeps the Gradle dependency cache warm, same as Rust keeps `~/.cargo`
+and Node keeps `~/.npm`.)
+
+†Java's figures were captured in a later, non-quiet session (background load
+averaging 2–4), so treat 680ms as an upper bound — the JVM boot plus Jetty
+and one JDBC connection, still well short of Ballerina's `bal run`.
 
 \*Startup polls every 10ms, so treat sub-20ms numbers (Go, Rust) as "at or
 below this measurement's resolution," not exact. Re-running shows real
@@ -233,27 +257,34 @@ because `bal run` boots a JVM. That JVM cost is the real tradeoff for
 choosing Ballerina now, not a dependency gap. SQLite and bcrypt are both
 native as of the latest commit.
 
+Java pays the same JVM boot cost — ~680ms, second-slowest — but its build is
+quick (2.4s for a tiny codebase; Gradle keeps its dependency cache) and the
+fat jar, 24M, is a third of Ballerina's. The two JVM stacks bracket that
+startup penalty: it's structural, not a framework choice.
+
 ### Memory
 
 Resident set size (RSS) of the server process, sampled once idle just
 after startup, then again as its peak during a 10s / 50-concurrent `hey`
 burst on `GET /posts/1`.
 
-|                | Go   | Ballerina | Python | Node   | Bun   | Rust |
-| -------------- | ---- | --------- | ------ | ------ | ----- | ---- |
-| Idle RSS       | 22M  | 186M      | 63M    | 65M    | 48M   | 11M  |
-| Under-load RSS | 34M  | 882M      | 73M    | 145M   | 96M   | 20M  |
+|                | Go   | Ballerina | Python | Node   | Bun   | Rust | Java |
+| -------------- | ---- | --------- | ------ | ------ | ----- | ---- | ---- |
+| Idle RSS       | 22M  | 186M      | 63M    | 65M    | 48M   | 11M  | 124M |
+| Under-load RSS | 34M  | 882M      | 73M    | 145M   | 96M   | 20M  | 411M |
 
 (`results/memory.json` via `make memory-stats`. Main process only; none of
-the six forks workers for this workload. Directional, single run.)
+the seven forks workers for this workload. Directional, single run.)
 
 Rust and Go are the tightest, 11–22M idle and barely moving under load.
-Ballerina is in a different weight class: a 186M idle JVM that balloons
-past 880M under load, 25x Rust's peak, as the JVM trades memory for
-throughput it doesn't get to use here. Node's heap grows the most in
-relative terms among the JS runtimes (65M to 145M); Bun stays leaner on
-both ends. Python barely moves because its single worker never has much
-in flight.
+The two JVM stacks are in a different weight class. Ballerina is the
+heaviest: a 186M idle JVM that balloons past 880M under load, 25x Rust's
+peak. Java is lighter on both ends — 124M idle, 411M under load — but still
+an order of magnitude above the native stacks, the JVM trading memory for
+throughput it doesn't get to use on a workload this small. Node's heap grows
+the most in relative terms among the JS runtimes (65M to 145M); Bun stays
+leaner on both ends. Python barely moves because its single worker never has
+much in flight.
 
 ### Cold-start warm-up
 
@@ -262,19 +293,23 @@ happens right after: 600 sequential `GET /posts/1` requests from one
 client, p99 of the first 100 against the last 100 — the JIT/VM warm-up the
 steady-state load test never shows.
 
-|                   | Go  | Ballerina | Python | Node | Bun | Rust |
-| ----------------- | --- | --------- | ------ | ---- | --- | ---- |
-| First 100, p99    | 1.0 | 8.4       | 1.8    | 4.2  | 0.5 | 0.5  |
-| Last 100, p99     | 0.8 | 4.9       | 1.4    | 0.7  | 0.3 | 0.4  |
+|                   | Go  | Ballerina | Python | Node | Bun | Rust | Java |
+| ----------------- | --- | --------- | ------ | ---- | --- | ---- | ---- |
+| First 100, p99    | 1.0 | 8.4       | 1.8    | 4.2  | 0.5 | 0.5  | 0.9  |
+| Last 100, p99     | 0.8 | 4.9       | 1.4    | 0.7  | 0.3 | 0.4  | 0.7  |
 
 (milliseconds; `results/warmup.json` via `make warmup-stats`. Directional,
-single run.)
+single run. Java captured in a later session, like Bun/Rust/Ballerina.)
 
 The two runtimes with a JIT show it. Ballerina's first-100 p99 is 8.4ms,
 settling to 4.9ms once HotSpot has compiled the hot path. Node drops from
 4.2ms to 0.7ms as V8 tiers up. Go, Rust, and Python start at roughly their
 steady-state numbers — nothing to warm up — and Bun's JSC is already fast
-by request one here.
+by request one here. Java barely moves either (0.9 to 0.7): same HotSpot as
+Ballerina, but the hot path here is a handful of trivial methods that tier
+up within the warm-up poll, before the first measured request. The two JVM
+stacks diverge on warm-up because Ballerina's runtime has more of its own
+code to compile, not because of the JIT itself.
 
 ### Load test
 
@@ -282,8 +317,8 @@ I ran these with `loadtest/run.sh` and `hey`, same machine, same DB, same
 fixture data (see `loadtest/results/`), same duration per stack per
 endpoint (30s for GET, 10s for POST). Go, Python, and Node were captured
 in one sitting. Bun came in a later session, Rust in a third, Ballerina in
-a fourth. So don't read too much into a close cross-session call, like Bun
-vs Node or Rust vs Go/Node.
+a fourth, Java in a fifth. So don't read too much into a close
+cross-session call, like Bun vs Node or Rust vs Go/Node.
 
 | Stack     | Endpoint          | Req/s | Avg latency | p99    |
 | --------- | ----------------- | ----- | ----------- | ------ |
@@ -299,53 +334,60 @@ vs Node or Rust vs Go/Node.
 | Bun       | `POST /posts`     | 3267  | 3.1ms       | 6.6ms  |
 | Rust      | `GET /posts/{id}` | 6612  | 7.6ms       | 15.5ms |
 | Rust      | `POST /posts`     | 3993  | 2.5ms       | 3.8ms  |
+| Java      | `GET /posts/{id}` | 4503  | 11.1ms      | 16.1ms |
+| Java      | `POST /posts`     | 3214  | 3.1ms       | 6.1ms  |
 
 Bun wins reads by a wide margin, 15274 req/s, roughly double Node's and
 triple Go's. It's within reach of Go on writes too. Node and Bun run the
 identical fan-out code over a synchronous, lock-free SQLite driver on a
 single thread. There's nothing to coordinate, so nothing slows them down.
 
-Go, Ballerina, and Rust all dispatch that same fan-out onto multiple
+Go, Ballerina, Rust, and Java all dispatch that same fan-out onto multiple
 threads, then serialize on the database anyway, whether that's a
-connection pool capped at one or an explicit mutex. On a workload this
-small, that coordination is pure overhead. Python is the slowest stack on
-both routes, especially writes at 271 req/s. A single uvicorn worker
-serializes every SQLite call behind a lock, and it shows.
+connection pool capped at one, an explicit mutex, or a `synchronized`
+connection. On a workload this small, that coordination is pure overhead.
+Java's read throughput, 4503 req/s, lands between Ballerina and Rust —
+virtual threads dispatch cheaply, but the shared connection serializes the
+real work just like the others. Python is the slowest stack on both routes,
+especially writes at 271 req/s. A single uvicorn worker serializes every
+SQLite call behind a lock, and it shows.
 
 ### Type checks, error shapes, and the concurrency illusion
 
-Go, Ballerina, and Rust reject a malformed request body before handler
-code even runs, thanks to generated types or `serde`. Python, Node, and
-Bun only catch the same errors once a request actually hits them. Bun's
-TypeScript layer adds an optional compile-time check (`bun x tsc
---noEmit`), but nothing enforces it at runtime.
+Go, Ballerina, Rust, and Java reject a malformed request body before
+handler code even runs, thanks to generated types, `serde`, or Jackson
+binding a generated DTO. Python, Node, and Bun only catch the same errors
+once a request actually hits them. Bun's TypeScript layer adds an optional
+compile-time check (`bun x tsc --noEmit`), but nothing enforces it at
+runtime.
 
-All six return the same `{"error": {"code", "message"}}` envelope on
+All seven return the same `{"error": {"code", "message"}}` envelope on
 every error response. There's one documented exception. Elysia validates
 Bun's request body against its schema before the handler-level auth check
 runs, so a request that's both unauthenticated and malformed returns `400
-validation_failed` instead of the `401 unauthorized` the other five
+validation_failed` instead of the `401 unauthorized` the other six
 return for the same request. Every single-condition case still matches
-across all six stacks. Only that simultaneous double-failure edge
+across all seven stacks. Only that simultaneous double-failure edge
 differs.
 
-All six fan out three lookups (author, comments, comment authors) on
+All seven fan out three lookups (author, comments, comment authors) on
 `GET /posts/{id}` and join the results. Goroutines in Go, named workers in
 Ballerina, `asyncio.gather` in Python, `Promise.all` in Node and Bun,
-`tokio::join!` in Rust. Go and Ballerina are the only two where that
-fan-out is actually parallel end to end, a pooled connection with no
-single lock serializing access. Python, Node, Bun, and Rust each either
-run on one thread or serialize behind a lock once the dispatched threads
-reach SQLite. Their "concurrency" is real at the dispatch level, but not
-at the execution level.
+`tokio::join!` in Rust, virtual threads in Java. Go and Ballerina are the
+only two where that fan-out is actually parallel end to end, a pooled
+connection with no single lock serializing access. Python, Node, Bun,
+Rust, and Java each either run on one thread or serialize behind a lock
+once the dispatched threads reach SQLite. Their "concurrency" is real at
+the dispatch level, but not at the execution level.
 
 And it doesn't obviously pay off either way. The two stacks with genuine
 parallel execution, Go and Ballerina, get outrun on this exact route by
-Node's and Bun's single-threaded, lock-free version.
+Node's and Bun's single-threaded, lock-free version — and by Java, whose
+threads serialize on the connection just like Rust's.
 
 ### Fail-open under load
 
-All six check a new post's body against the profanity stub with a 2s
+All seven check a new post's body against the profanity stub with a 2s
 timeout and fall open (allow the write) if the stub is slow or down. This
 runs `POST /posts` at 10 concurrent for 8s with the stub healthy, then
 again with it forced to stall 5s so every write trips the timeout.
@@ -358,6 +400,7 @@ again with it forced to stall 5s so every write trips the timeout.
 | Node      | 2923          | 5.0           | 2011ms              | 0   |
 | Bun       | 3968          | 5.0           | 2010ms              | 0   |
 | Rust      | 4594          | 5.0           | 2006ms              | 0   |
+| Java      | 3031          | 5.0           | 2016ms              | 0   |
 
 (`results/failopen.json` via `make failopen-stats`. Directional, single run.)
 
@@ -366,7 +409,7 @@ leaks a 5xx when the dependency stalls. But the fallback fires *per
 request* — nothing caches or short-circuits a known-bad upstream — so
 every write pays the full 2s timeout, and throughput on that route
 collapses to `concurrency / timeout` (~5 req/s) until the stub recovers.
-Correct, bounded, and still a hard throttle. Identical across all six
+Correct, bounded, and still a hard throttle. Identical across all seven
 because it's the same timeout doing the same job.
 
 ### Where each one earns its keep
@@ -380,7 +423,7 @@ most of any compiled stack for the safety it buys.
 JSON binding, worker-based concurrency that reads like straight-line
 code, and SQLite plus bcrypt both native now (`kanushka/sqlite`,
 `ballerina/crypto`). The cost is JVM startup, 795ms, the slowest of the
-six, and the lowest read-path throughput in the load test.
+seven, and the lowest read-path throughput of the compiled stacks.
 
 **Python** needs the least code for a working API. FastAPI and pydantic
 cover parsing, validation, and serialization for free, and there's no
@@ -398,10 +441,22 @@ JavaScriptCore and Elysia's router, not anything in the code itself. Same
 lack of compile-time enforcement as Node, plus one documented ordering
 quirk where schema validation runs ahead of the auth check.
 
-**Rust** ships the smallest binary of the six, and starts within a few ms
+**Rust** ships the smallest binary of the seven, and starts within a few ms
 of Go. It also has the strongest compile-time guarantees, a missing error
 branch is a compile error, not a runtime accident. The build is the
 slowest of all, 42s, and on this specific small fan-out it loses the
 read-path load test to Node and Bun despite genuinely parallel thread
 dispatch. The shared-connection mutex serializes the real work
 regardless.
+
+**Java** is the middle of the pack made literal: read throughput between
+Ballerina and Rust, write throughput mid-field, a codebase between Node's
+and Go's. It's a compiled, typed stack with generated request DTOs, on a
+minimal framework (Javalin, embedded Jetty, no DI container) so the numbers
+reflect the JVM rather than Spring. The fan-out is plain
+`Executors.newVirtualThreadPerTaskExecutor()` — no callback or async
+colouring — but the tasks serialize on one `synchronized` connection, so
+it's concurrent, not parallel, same as Rust. Unlike Ballerina, the other
+JVM stack, SQLite (`sqlite-jdbc`) and bcrypt (`at.favre.lib`) are ordinary
+libraries and the profanity call is stdlib `java.net.http`. The cost is the
+JVM's: ~120M idle RSS, second only to Ballerina, and a ~680ms cold start.

@@ -4,18 +4,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-A head-to-head comparison of Ballerina, Go, Python, Node.js, Bun, and Rust:
-the *same* blogging platform API (users/posts/comments, JWT auth, SQLite,
-profanity-check external call, concurrent fan-out) is implemented six
-times, once per stack, against one shared `openapi.yaml` contract and one
-shared `schema.sql`. The goal is a comparison writeup (the Results section
+A head-to-head comparison of Ballerina, Go, Python, Node.js, Bun, Rust, and
+Java: the *same* blogging platform API (users/posts/comments, JWT auth,
+SQLite, profanity-check external call, concurrent fan-out) is implemented
+seven times, once per stack, against one shared `openapi.yaml` contract and
+one shared `schema.sql`. The goal is a comparison writeup (the Results section
 of `README.md`), not a production service, see `plan.md` for the full
 criteria list and `README.md` for current status.
 
 Any change to behavior (validation rules, error envelope shape, endpoints)
-should generally be made in **all six** of `ballerina/`, `go/`, `python/`,
-`node/`, `bun/`, and `rust/` to keep the comparison fair, unless the task is
-explicitly about one stack only.
+should generally be made in **all seven** of `ballerina/`, `go/`, `python/`,
+`node/`, `bun/`, `rust/`, and `java/` to keep the comparison fair, unless the
+task is explicitly about one stack only.
 
 ## Commands
 
@@ -28,6 +28,7 @@ cd python && .venv/bin/python main.py    # Python API, port 8082 (or PORT from .
 cd node && node server.js                # Node API, port 8083 (or PORT from .env)
 cd bun && bun server.ts                  # Bun API, port 8084 (or PORT from .env)
 cd rust && cargo run --release           # Rust API, port 8085 (or PORT from .env)
+cd java && ./gradlew run                  # Java API, port 8086 (JWT_SECRET etc. from the shell)
 ```
 
 **Go**
@@ -107,21 +108,42 @@ like Go and Ballerina, needs the shell/CI to export env vars at runtime —
 no dotenv equivalent, `--env-file` flag, or built-in `.env` loading, unlike
 Bun.
 
+**Java**
+```bash
+cd java && ./gradlew build              # compile + shadowJar + test
+cd java && ./gradlew run                # run (reads JWT_SECRET etc. from the shell)
+cd java && ./gradlew test               # test
+cd java && ./gradlew shadowJar          # build/libs/blog-java-all.jar (used by the stats scripts)
+```
+`java/src/test/java/blog/ApiTest.java` is a JUnit 5 integration suite: it
+starts a real Javalin server on an ephemeral port against a temp SQLite db
+built from `../schema.sql`, with the profanity URL hardcoded to nothing
+listening so the fail-open fallback (plan.md criterion #6) fires
+deterministically — same trick as `rust/tests/api.rs`, and why `./gradlew
+test` needs no env vars set. Java, like Go/Ballerina/Rust, needs the
+shell/CI to export env vars at runtime — no dotenv equivalent.
+`java/src/gen/java/blog/model/*.java` is generated from `../openapi.yaml` by
+`scripts/gen-models.sh` (needs `openapi-generator` on PATH) and committed —
+do not hand-edit; rerun that script when the spec changes, same as Go's
+`api.gen.go`. Needs a system Gradle only once, to create the wrapper
+(`brew install gradle && cd java && gradle wrapper`); `./gradlew` after that.
+
 **DB setup** (each stack reads/writes its own `blog.db` from the same schema):
 ```bash
 sqlite3 blog.db < ../schema.sql && sqlite3 blog.db < ../seed.sql
 ```
 
-All six stacks require a `.env` (copied from `.env.example`) with
-`JWT_SECRET` set — they fail to start without it. Same env var values are
-used by all of them intentionally (see `.env.example`).
+All seven stacks require a `.env` (copied from `.env.example`) with
+`JWT_SECRET` set — they fail to start without it. Java has no `.env` loading
+of its own, so `make run-java` / the stats scripts pass the vars through the
+shell; the values are the same as `.env.example` intentionally.
 
 ## Architecture
 
 **Shared contract, independent implementations.** `openapi.yaml` and
-`schema.sql` at the repo root are the single source of truth all six
+`schema.sql` at the repo root are the single source of truth all seven
 stacks implement against; there is no shared code between `ballerina/`,
-`go/`, `python/`, `node/`, `bun/`, `rust/`, and `mock-profanity-api/`.
+`go/`, `python/`, `node/`, `bun/`, `rust/`, `java/`, and `mock-profanity-api/`.
 
 **Go** (`go/`): chi router, handlers generated interface from
 `api.gen.go` implemented in `internal/handlers/handlers.go`. Layout:
@@ -193,7 +215,7 @@ TypeScript instead of JavaScript.
   force Ballerina into Java interop
 
 **Rust** (`rust/`): flat module layout, mirrors Go's `internal/` package
-split closest of the six (compiled, typed, no runtime GC), but as a single
+split closest of the seven (compiled, typed, no runtime GC), but as a single
 crate rather than Go-style subpackages.
 - `src/app.rs` — builds the axum `Router` + all endpoint handlers (exported
   as `build_router`, not run), analogous to `handlers.go`
@@ -220,25 +242,63 @@ crate rather than Go-style subpackages.
   build-time numbers use `cargo build --release`/`cargo run --release`, same
   as comparing Go's compiled binary rather than an unoptimized one
 
-**All six stacks implement the same behavioral contract**: consistent JSON error
+**Java** (`java/`): flat single-package layout under `src/main/java/blog/`,
+minimal-framework (Javalin on embedded Jetty, no DI container) so the
+comparison measures the language + runtime, not Spring. Closest sibling is
+Go/Rust — compiled, typed, explicit single connection.
+- `App.java` — builds the Javalin app + all endpoint handlers (exported as
+  `build`, not run), analogous to `handlers.go` / `app.rs`. Routes are
+  hand-written; responses are plain `Map`s, same as `app.rs`'s `json!` bodies
+- `Main.java` — entry point: loads config, opens the db, starts Javalin
+- `Store.java` — SQLite via `sqlite-jdbc` (bundled libsqlite3), plain SQL over
+  one `java.sql.Connection`; every method `synchronized` — the same
+  single-writer constraint as Go's `SetMaxOpenConns(1)` and Rust's `Mutex`,
+  made explicit since sqlite-jdbc has no pool
+- `Auth.java` — JWT issue/verify (`com.auth0:java-jwt`) + password hashing
+  (`at.favre.lib:bcrypt`) — the two primitives Ballerina needs Java interop
+  for, here just two small JVM libraries
+- `Profanity.java` — profanity-check client on the **stdlib**
+  `java.net.http.HttpClient` (no dependency, unlike Rust's reqwest), timeout +
+  fail-open fallback
+- `Config.java` — env var config loading, same hand-rolled duration parser as
+  Python/Node/Bun/Rust; no `.env` loading (shell/CI exports the vars)
+- `Http.java` — `AppException` + error-envelope handler, closest to Go's
+  `internal/httpx` and Rust's `httpx.rs`
+- `src/gen/java/blog/model/*.java` — request DTOs (the 5 the handlers bind)
+  generated from `openapi.yaml` by `scripts/gen-models.sh` (openapi-generator
+  CLI, `jaxrs-spec` generator, models only) and committed — do not hand-edit;
+  rerun the script when the spec changes, same as Go's `api.gen.go`. Semantic
+  validation (non-empty title, password length) is still runtime code
+- `GET /posts/{id}`'s fan-out (plan.md criterion #7) runs on
+  `Executors.newVirtualThreadPerTaskExecutor()` and joins the `Future`s;
+  Javalin itself serves on virtual threads (`config.useVirtualThreads`). Real
+  threads, not Node/Bun's single JS thread — but the tasks serialize behind
+  `Store`'s single connection, so the DB access isn't actually parallel; same
+  story as Go and Rust, see README.md's concurrency table
+- `logback.xml` + `logstash-logback-encoder` for structured JSON logs
+- Build: `com.gradleup.shadow` produces `build/libs/blog-java-all.jar` (used by
+  the stats scripts). Needs a system Gradle only once for `gradle wrapper`;
+  `./gradlew` after that. Runs on the JDK Gradle uses (21+; developed on 26)
+
+**All seven stacks implement the same behavioral contract**: consistent JSON error
 envelope on all error responses, ownership checks on post/comment writes,
 `GET /posts/{id}` fans out author + comments + comment-authors concurrently
 (goroutines in Go, workers in Ballerina, `asyncio.gather` in Python,
-`Promise.all` in Node and Bun, `tokio::join!` in Rust) and joins the results,
-and the profanity check on post/comment bodies has a timeout with fail-open
-fallback if the stub is unreachable — see `README.md`'s Technical Criteria
-table for the full list. One documented divergence: Bun's schema validation
-runs before its handler-level auth check, so a request that is
-simultaneously unauthenticated *and* has an invalid body returns
-`400 validation_failed` there instead of the `401 unauthorized` the other
-five return — a side effect of Elysia's validate-before-beforeHandle
-lifecycle, not a contract bug. Every single-condition case (auth-only,
-body-only) matches across all six.
+`Promise.all` in Node and Bun, `tokio::join!` in Rust, virtual threads in
+Java) and joins the results, and the profanity check on post/comment bodies
+has a timeout with fail-open fallback if the stub is unreachable — see
+`README.md`'s Technical Criteria table for the full list. One documented
+divergence: Bun's schema validation runs before its handler-level auth
+check, so a request that is simultaneously unauthenticated *and* has an
+invalid body returns `400 validation_failed` there instead of the `401
+unauthorized` the other six return — a side effect of Elysia's
+validate-before-beforeHandle lifecycle, not a contract bug. Every
+single-condition case (auth-only, body-only) matches across all seven.
 
 **mock-profanity-api** (`mock-profanity-api/`): dependency-free `net/http`
 stub, not part of the comparison itself — supports forcing slow/failing
 responses to exercise the timeout/fallback path deterministically in all
-six stacks.
+seven stacks.
 
 ## Commit messages
 
