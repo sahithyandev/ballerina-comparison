@@ -107,7 +107,9 @@ def python_deps():
     direct = sum(1 for l in lines if l.strip())
     dev_lines = (ROOT / "python/requirements-dev.txt").read_text().splitlines()
     dev = sum(1 for l in dev_lines if l.strip() and not l.startswith("-r "))
-    return direct, None, dev  # no lock file committed, transitive count unavailable
+    lock_lines = (ROOT / "python/requirements-lock.txt").read_text().splitlines()
+    total = sum(1 for l in lock_lines if l.strip())
+    return direct, total - direct, dev
 
 
 def node_deps():
